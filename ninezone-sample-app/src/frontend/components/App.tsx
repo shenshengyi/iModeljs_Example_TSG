@@ -298,9 +298,8 @@ class OpenIModelButton extends React.PureComponent<
     try {
       // attempt to open the imodel
       if (true) {
-        //this.props.offlineIModel
-        //const offlineIModel = Config.App.getString("imjs_offline_imodel");
-        const offlineIModel = "D:\\Baytown.bim";
+        // this.props.offlineIModel;
+        const offlineIModel = Config.App.getString("imjs_offline_imodel");
         imodel = await SnapshotConnection.openFile(offlineIModel);
       } else {
         const info = await this.getIModelInfo();

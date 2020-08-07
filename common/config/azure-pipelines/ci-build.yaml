@@ -1,0 +1,36 @@
+trigger:
+- master
+
+jobs:
+  - job:
+    condition: succeeded()
+    strategy:
+      maxParallel: 3
+      matrix:
+        'Windows':
+          os: vs2017-win2016
+        'Linux':
+          os: ubuntu-18.04
+        'Mac':
+          os: macOS-latest
+    pool:
+      vmImage: $(os)
+    steps:
+      - checkout: self
+        clean: all
+      - task: NodeTool@0
+        displayName: 'Install Node 12.x'
+        inputs:
+          versionSpec: 12.x
+          checkLatest: true
+
+      - script: node ./common/scripts/install-run-rush.js check
+        displayName: Rush check
+      - script: node ./common/scripts/install-run-rush.js install
+        displayName: Rush install
+      - script: node ./common/scripts/install-run-rush.js lint
+        displayName: Rush lint
+      - script: node ./common/scripts/install-run-rush.js build -v
+        displayName: Rush build
+      - script: node ./common/scripts/install-run-rush.js test -v
+        displayName: Rush test

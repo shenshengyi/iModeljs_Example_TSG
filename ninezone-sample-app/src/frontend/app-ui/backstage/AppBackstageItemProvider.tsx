@@ -41,6 +41,22 @@ export class AppBackstageItemProvider {
           undefined,
           "icon-placeholder"
         ),
+        BackstageItemUtilities.createStageLauncher(
+          "ViewsFrontstage",
+          100,
+          40,
+          "测试Viewer",
+          undefined,
+          "icon-placeholder"
+        ),
+        BackstageItemUtilities.createStageLauncher(
+          "LoadingStage",
+          100,
+          50,
+          "测试Loading",
+          undefined,
+          "icon-placeholder"
+        ),
       ];
     }
     return this._backstageItems;

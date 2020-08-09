@@ -9,10 +9,12 @@ import {
   FrontstageManager,
   SyncUiEventDispatcher,
   UiFramework,
+  ContentLayoutProps,
 } from "@bentley/ui-framework";
 import { SampleFrontstage } from "./frontstages/SampleFrontstage";
 import { SampleFrontstage2 } from "./frontstages/SampleFrontstage2";
 import { TestFeatureStage } from "./frontstages/TestFeaturestage";
+import { ViewsFrontstage, LoadingStage } from "./frontstages/ViewsFrontstage";
 
 /**
  * Example Ui Configuration for an iModel.js App
@@ -21,8 +23,18 @@ export class AppUi {
   // Initialize the ConfigurableUiManager
   public static initialize() {
     ConfigurableUiManager.initialize();
+    ConfigurableUiManager.loadContentLayouts(this.getContentLayouts());
   }
-
+  private static getContentLayouts(): ContentLayoutProps[] {
+    const singleContent: ContentLayoutProps = {
+      id: "SingleContent",
+      descriptionKey: "NavigatorApp:ContentDef.OneView",
+      priority: 100,
+    };
+    const contentLayouts: ContentLayoutProps[] = [];
+    contentLayouts.push(singleContent);
+    return contentLayouts;
+  }
   // Command that toggles the backstage
   public static get backstageToggleCommand() {
     return Backstage.backstageToggleCommand;
@@ -57,5 +69,11 @@ export class AppUi {
 
     const testFeature = new TestFeatureStage(viewStates);
     FrontstageManager.addFrontstageProvider(testFeature);
+
+    const viewFeature = new ViewsFrontstage(viewStates);
+    FrontstageManager.addFrontstageProvider(viewFeature);
+
+    const loadStage = new LoadingStage();
+    FrontstageManager.addFrontstageProvider(loadStage);
   }
 }

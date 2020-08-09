@@ -30,6 +30,8 @@
     "test": ""
   },
   "dependencies": {
+    "@bentley/formsrenderer": "^1.57.2",
+    "@bentley/issue-resolution": "3.7.25",
     "@bentley/bentleyjs-core": "^2.4.0",
     "@bentley/context-registry-client": "^2.4.0",
     "@bentley/ecschema-metadata": "^2.4.0",

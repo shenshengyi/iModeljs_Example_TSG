@@ -20,6 +20,11 @@ import {
   DefaultNavigationWidget,
   ToolWidget,
   ItemList,
+  ViewportContentControl,
+  ConfigurableUiManager,
+  BasicNavigationWidget,
+  ModelsTree,
+  ClassGroupingOption,
 } from "@bentley/ui-framework";
 import {
   IssuesResolutionWidget,
@@ -33,40 +38,102 @@ import {
   TwoWayViewportSync,
 } from "@bentley/imodeljs-frontend";
 import { NavigatorTools } from "../tools/NavigatorTools";
-import { ViewportComponent } from "@bentley/ui-components";
+import { ViewportComponent, SelectionMode } from "@bentley/ui-components";
 import { TestFeature } from "./Features";
 import { AppUi } from "../AppUi";
+import { viewWithUnifiedSelection } from "@bentley/presentation-components";
 
 export class ViewsFrontstage extends FrontstageProvider {
+  public static MAIN_VIEW_LAYOUT_ID = "MainView";
+  public static MAIN_VIEW_XSECTION_SPLIT_LAYOUT_ID =
+    "MainViewWithXSection.HorizontalSplit";
+  public static MAIN_VIEW_PROFILE_SPLIT_LAYOUT_ID =
+    "MainViewWithProfileSection.HorizontalSplit";
+  public static MAIN_CONTENT_ID = "Main";
+  public static XSECTION_CONTENT_ID = "XSection";
+  public static PROFILE_CONTENT_ID = "ProfileSection";
   private _contentGroup: ContentGroup;
   private _contentLayout: ContentLayoutDef;
+  // Default layout
+  private _mainViewLayout: ContentLayoutDef;
+  private _mainViewWithXSectionLayout: ContentLayoutDef;
+  private _mainViewWithProfileSectionLayout: ContentLayoutDef;
   public constructor(public viewStates: ViewState[]) {
     super();
+
+    // Create the content layouts.
+    this._mainViewLayout = new ContentLayoutDef({
+      descriptionKey: "ProjectWiseReview:ContentLayoutDef.MainView",
+      priority: 50,
+      id: ViewsFrontstage.MAIN_VIEW_LAYOUT_ID,
+    });
+
+    this._mainViewWithXSectionLayout = new ContentLayoutDef({
+      descriptionKey: "ProjectWiseReview:ContentLayoutDef.MainViewWithXSection",
+      priority: 50,
+      horizontalSplit: {
+        id: ViewsFrontstage.MAIN_VIEW_XSECTION_SPLIT_LAYOUT_ID,
+        percentage: 0.6,
+        top: 0,
+        bottom: 1,
+      },
+    });
+
+    this._mainViewWithProfileSectionLayout = new ContentLayoutDef({
+      descriptionKey:
+        "ProjectWiseReview:ContentLayoutDef.MainViewWithProfileSection",
+      priority: 50,
+      horizontalSplit: {
+        id: ViewsFrontstage.MAIN_VIEW_PROFILE_SPLIT_LAYOUT_ID,
+        percentage: 0.6,
+        top: 0,
+        bottom: 2,
+      },
+    });
+
     this._contentLayout = new ContentLayoutDef({});
 
     const contentProps: ContentProps[] = [];
 
-    this._contentGroup = new ContentGroup({
-      contents: [
-        {
-          classId: IModelViewportControl,
-          applicationData: {
-            ViewState: this.viewStates[0],
-            iModelConnection: UiFramework.getIModelConnection(),
-            disableDefaultViewOverlay: true,
-          },
-        },
-      ],
+    contentProps.push({
+      // id: ViewsFrontstage.MAIN_CONTENT_ID,
+      // classId: IModelViewportControl,
+      // applicationData: {
+      //   viewState: this.viewStates[0],
+      //   iModelConnection: UiFramework.getIModelConnection(),
+      //   disableDefaultViewOverlay: true,
+      // },
+      classId: ContentViewId.IModelViewport,
+      applicationData: {
+        getViewState: this.viewStates[0],
+        iModelConnection: UiFramework.getIModelConnection(),
+      },
     });
+    this._contentGroup = new ContentGroup({ contents: [...contentProps] });
+  }
+  public static getTopCenterWidgets() {
+    return [<Widget defaultState={WidgetState.Open} isToolSettings={true} />];
+  }
+
+  public static getTopRightWidgets() {
+    // if (NavigatorApp.flags.useSharedNavigationWidget) {
+    //   return [<Widget isFreeform={true} element={<BasicNavigationWidget />} />];
+    // }
+    // return [
+    //   <Widget isFreeform={true} element={<NavigatorNavigationWidget />} />,
+    // ];
+    return [<Widget isFreeform={true} element={<BasicNavigationWidget />} />];
   }
   public get frontstage() {
     return (
       <Frontstage
         id={"ViewsFrontstage"}
         defaultTool={NavigatorTools.selectElementCommand}
-        defaultLayout={this._contentLayout}
+        defaultLayout={this._mainViewWithProfileSectionLayout}
         contentGroup={this._contentGroup}
         isInFooterMode={true}
+        topCenter={<Zone widgets={ViewsFrontstage.getTopCenterWidgets()} />}
+        // topRight={<Zone widgets={ViewsFrontstage.getTopRightWidgets()} />}
         topLeft={
           <Zone
             widgets={[
@@ -107,23 +174,23 @@ export class ViewsFrontstage extends FrontstageProvider {
             ]}
           />
         }
-        rightPanel={
-          <StagePanel
-            size={375}
-            defaultState={StagePanelState.Minimized}
-            widgets={[
-              <Widget
-                id="IssueResolution"
-                label={"NavigatorApp:widgetTabs.IssueResolution"}
-                defaultState={WidgetState.Closed}
-                applicationData={{
-                  iModelConnection: UiFramework.getIModelConnection(),
-                  initialIssueId: "NavigatorApp.issueId",
-                }}
-              />,
-            ]}
-          />
-        }
+        // rightPanel={
+        //   <StagePanel
+        //     size={375}
+        //     defaultState={StagePanelState.Minimized}
+        //     widgets={[
+        //       <Widget
+        //         id="IssueResolution"
+        //         label={"NavigatorApp:widgetTabs.IssueResolution"}
+        //         defaultState={WidgetState.Closed}
+        //         applicationData={{
+        //           iModelConnection: UiFramework.getIModelConnection(),
+        //           initialIssueId: "NavigatorApp.issueId",
+        //         }}
+        //       />,
+        //     ]}
+        //   />
+        // }
       ></Frontstage>
     );
   }
@@ -139,10 +206,11 @@ class SunWidget extends WidgetControl {
 
     if (options.iModelConnection) {
       this.reactNode = (
-        <ViewportComponent
-          imodel={options.iModelConnection}
-          viewState={options.viewState}
-          viewportRef={TwoViewportSync}
+        <ModelsTree
+          iModel={options.iModelConnection}
+          selectionMode={SelectionMode.Single}
+          activeView={IModelApp.viewManager.selectedView}
+          enableElementsClassGrouping={ClassGroupingOption.No}
         />
       );
     } else {
@@ -174,7 +242,10 @@ export class LoadingStage extends FrontstageProvider {
 
 class SampleToolWidget extends React.Component {
   public render(): React.ReactNode {
-    const horizontalItems = new ItemList([CoreTools.selectElementCommand]);
+    const horizontalItems = new ItemList([
+      CoreTools.selectElementCommand,
+      CoreTools.fitViewCommand,
+    ]);
 
     return (
       <ToolWidget
@@ -184,3 +255,35 @@ class SampleToolWidget extends React.Component {
     );
   }
 }
+const NavigatorViewport = viewWithUnifiedSelection(ViewportComponent);
+export class MyIModelViewportControl extends ViewportContentControl {
+  constructor(info: ConfigurableCreateInfo, options: any) {
+    super(info, options);
+
+    if (options.getViewState) {
+      this.reactElement = (
+        <NavigatorViewport
+          viewState={options.getViewState}
+          imodel={options.iModelConnection}
+          viewportRef={(v: ScreenViewport) => {
+            this.viewport = v;
+
+            // for convenience, if window defined bind viewport to window
+            if (undefined !== window) (window as any).viewport = v;
+          }}
+        />
+      ); // tslint:disable-line
+    } else {
+      this.reactElement = <div>hello,world</div>;
+    }
+  }
+}
+// ContentView Id's
+export enum ContentViewId {
+  IModelViewport = "Navigator.ContentView.IModelViewport",
+}
+
+ConfigurableUiManager.registerControl(
+  ContentViewId.IModelViewport,
+  MyIModelViewportControl
+);

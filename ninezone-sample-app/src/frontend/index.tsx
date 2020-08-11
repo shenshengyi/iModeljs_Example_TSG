@@ -1,7 +1,7 @@
 /*---------------------------------------------------------------------------------------------
-* Copyright (c) Bentley Systems, Incorporated. All rights reserved.
-* See LICENSE.md in the project root for license terms and full copyright notice.
-*--------------------------------------------------------------------------------------------*/
+ * Copyright (c) Bentley Systems, Incorporated. All rights reserved.
+ * See LICENSE.md in the project root for license terms and full copyright notice.
+ *--------------------------------------------------------------------------------------------*/
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 
@@ -12,6 +12,7 @@ import { NineZoneSampleApp } from "./app/NineZoneSampleApp";
 import { AppUi } from "./app-ui/AppUi";
 import App from "./components/App";
 import "./index.scss";
+import { Button } from "@bentley/ui-core";
 
 // Setup logging immediately to pick up any logging during NineZoneSampleApp.startup()
 Logger.initializeToConsole();
@@ -26,8 +27,5 @@ Logger.setLevel(AppLoggerCategory.Frontend, LogLevel.Info);
   AppUi.initialize();
 
   // when initialization is complete, render
-  ReactDOM.render(
-    <App />,
-    document.getElementById("root") as HTMLElement,
-  );
+  ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
 })(); // tslint:disable-line:no-floating-promises

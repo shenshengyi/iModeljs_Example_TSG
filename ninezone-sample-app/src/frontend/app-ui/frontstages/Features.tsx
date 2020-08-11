@@ -29,6 +29,13 @@ import {
   DecorateContext,
   GraphicType,
   ViewRect,
+  HitDetail,
+  LocateFilterStatus,
+  LocateResponse,
+  BeWheelEvent,
+  imageBufferToBase64EncodedPng,
+  canvasToImageBuffer,
+  ParseAndRunResult,
 } from "@bentley/imodeljs-frontend";
 import { ItemList, CommandItemDef, UiFramework } from "@bentley/ui-framework";
 import {
@@ -40,6 +47,7 @@ import {
   SubCategoryOverride,
   DisplayStyleSettingsProps,
   DisplayStyle3dSettingsProps,
+  ImageBuffer,
 } from "@bentley/imodeljs-common";
 import {
   Id64String,
@@ -55,6 +63,9 @@ import {
   Range3d,
 } from "@bentley/geometry-core";
 import { DisplayStyle3d } from "@bentley/imodeljs-backend";
+import React from "react";
+import ReactDOM from "react-dom";
+import DynamicLink from "./DynamicLink";
 
 export class TestFeature {
   public static CreateCommand(
@@ -100,6 +111,16 @@ export class TestFeature {
       TestViewManager
     ),
     TestFeature.CreateCommand("TestUnDo", "测试撤销", TestUnDo),
+    TestFeature.CreateCommand(
+      "TestElementLocateManager",
+      "测试ElementLocateManager",
+      TestElementLocateManager
+    ),
+    TestFeature.CreateCommand(
+      "TestDownloadViewport",
+      "测试DownloadViewport",
+      TestDownloadViewport
+    ),
   ]);
 }
 //测试背景色;
@@ -378,7 +399,7 @@ abstract class DisplayStyleTool extends Tool {
   }
 }
 
-class ToggleSkyboxTool extends DisplayStyleTool {
+export class ToggleSkyboxTool extends DisplayStyleTool {
   public static toolId = "ToggleSkybox";
 
   public get require3d() {
@@ -600,4 +621,207 @@ async function TestViewManager() {
   // }
   // const id = "0x20000000001";
   // vp!.addViewedModels(id);
+}
+//测试ElementLocateManager
+async function TestElementLocateManager() {
+  // const curr = IModelApp.locateManager.currHit;
+  // alert(IModelApp.applicationId);
+  // if (curr) {
+  //   alert("当前选中的模型名称为:" + curr.iModel.name);ToggleSkyboxTool
+  // }
+  const r = IModelApp.tools.run(Tool1.toolId);
+  if (r) {
+    alert("工具启动成功");
+  } else {
+    alert("工具启动失败");
+  }
+}
+export class SampleLocateTool extends PrimitiveTool {
+  public static toolId = "SampleLocate";
+  // public static toolId = "ToggleSkybox";
+  public onRestartTool(): void {
+    this.exitTool();
+  }
+
+  // __PUBLISH_EXTRACT_START__ PrimitiveTool_Locate
+  public async filterHit(
+    hit: HitDetail,
+    _out?: LocateResponse
+  ): Promise<LocateFilterStatus> {
+    // Check that element is valid for the tool operation, ex. query backend to test class, etc.
+    // For this example we'll just test the element's selected status.
+    const isSelected = this.iModel.selectionSet.has(hit.sourceId);
+    return isSelected ? LocateFilterStatus.Reject : LocateFilterStatus.Accept; // Reject element that is already selected
+  }
+
+  public async onDataButtonDown(ev: BeButtonEvent): Promise<EventHandled> {
+    const hit = await IModelApp.locateManager.doLocate(
+      new LocateResponse(),
+      true,
+      ev.point,
+      ev.viewport,
+      ev.inputSource
+    );
+    if (hit !== undefined) this.iModel.selectionSet.replace(hit.sourceId); // Replace current selection set with accepted element
+    alert("选中元素");
+    return EventHandled.No;
+  }
+
+  public onPostInstall() {
+    super.onPostInstall();
+    this.initLocateElements(); // Enable AccuSnap locate, set view cursor, add CoordinateLockOverrides to disable unwanted pre-locate point adjustments...
+  }
+  // __PUBLISH_EXTRACT_END__
+}
+export class Tool1 extends PrimitiveTool {
+  public static toolId = "Tool1";
+  public readonly points: Point3d[] = [];
+
+  public requireWriteableTarget(): boolean {
+    return false;
+  }
+  public onPostInstall() {
+    super.onPostInstall();
+    this.setupAndPromptForNextAction();
+  }
+  public async onMouseWheel(_ev: BeWheelEvent): Promise<EventHandled> {
+    return EventHandled.No;
+  }
+  public setupAndPromptForNextAction(): void {
+    IModelApp.notifications.outputPromptByKey(
+      "SampleApp:tools.Tool1.Prompts.GetPoint"
+    );
+  }
+  public async filterHit(
+    _hit: HitDetail,
+    _out?: LocateResponse
+  ): Promise<LocateFilterStatus> {
+    alert("选中元素，拒绝");
+    return LocateFilterStatus.Reject;
+  }
+  public async onDataButtonDown(ev: BeButtonEvent): Promise<EventHandled> {
+    // this.points.push(ev.point.clone());
+    // this.setupAndPromptForNextAction();
+    // alert("points size = " + this.points.length.toString());
+
+    const hit = await IModelApp.locateManager.doLocate(
+      new LocateResponse(),
+      true,
+      ev.point,
+      ev.viewport,
+      ev.inputSource
+    );
+    if (hit !== undefined) {
+      this.iModel.selectionSet.replace(hit.sourceId); // Replace current selection set with accepted element
+      const props = await this.iModel.elements.getProps(hit.sourceId);
+      if (props && props.length > 0) {
+        alert("选中元素的种类:" + props[0].classFullName);
+      }
+    } else {
+      alert("没有选中元素");
+    }
+
+    return EventHandled.No;
+  }
+
+  public async onResetButtonUp(_ev: BeButtonEvent): Promise<EventHandled> {
+    IModelApp.toolAdmin.startDefaultTool();
+    return EventHandled.No;
+  }
+
+  public onRestartTool(): void {
+    const tool = new Tool1();
+    if (!tool.run()) this.exitTool();
+  }
+}
+
+//测试downloadViewport
+async function TestDownloadViewport() {
+  // const vp = IModelApp.viewManager.selectedView;
+  // const image = generateDecoratedViewportUrlData(vp!);
+  // alert(image);
+  // if (
+  //   ParseAndRunResult.Success ==
+  //   IModelApp.tools.parseAndRun("fdt project extents")
+  // ) {
+  //   alert("运行成功");
+  // } else {
+  //   alert("运行失败");
+  // }
+  const ideaDialog = document.createElement("div");
+  ideaDialog.id = "dr-idea-dialog";
+  ideaDialog.style.top = "50px";
+  const link = document.createElement("a");
+  const ideaDialogLI1 = document.createElement("li");
+  const ideaDialogLI2 = document.createElement("li");
+  const ideaDialogLI3 = document.createElement("li");
+  const ideaDialogLI4 = document.createElement("li");
+  ideaDialogLI1.appendChild(link);
+  ideaDialog.appendChild(ideaDialogLI1);
+  ideaDialog.appendChild(ideaDialogLI2);
+  var btn = document.createElement("BUTTON");
+  ideaDialogLI2.appendChild(btn);
+  ideaDialog.appendChild(ideaDialogLI3);
+  ideaDialog.appendChild(ideaDialogLI4);
+  document.body.appendChild(ideaDialog);
+}
+
+export const generateDecoratedViewportUrlData = (
+  vp: Viewport
+): string | undefined => {
+  const isUsingWebGL = (vp.target as any)._usingWebGLCanvas; // This is wrong and specific to OnScreenTarget, should this be a public prop ?
+  if (isUsingWebGL) {
+    // OnScreenTarget renders content and overlay in 2 different canvas that is not caught by readImage, but this is
+    // specific to OnScreenTarget, should readImage have a parameter to include or not the overlays ?
+    vp.target.setRenderToScreen(false);
+  }
+
+  renderFrameWithNoAccuSnap(vp);
+  const imageBuffer = canvasToImageBuffer(vp.readImageToCanvas());
+  const vanvas = vp.readImageToCanvas();
+  const ss = vanvas.toDataURL("image/png");
+  alert(ss);
+
+  if (isUsingWebGL) {
+    vp.target.setRenderToScreen(isUsingWebGL);
+  }
+
+  return encodeToUrlData(imageBuffer);
+};
+// let theViewport: ScreenViewport | undefined;
+// async function savePng(
+//   fileName: string,
+//   canvas?: HTMLCanvasElement
+// ): Promise<void> {
+//   if (!canvas)
+//     canvas =
+//       theViewport !== undefined ? theViewport.readImageToCanvas() : undefined;
+//   if (canvas !== undefined) {
+//     const img = canvas.toDataURL("image/png"); // System.instance.canvas.toDataURL("image/png");
+//     const data = img.replace(/^data:image\/\w+;base64,/, ""); // strip off the data: url prefix to get just the base64-encoded bytes
+//     return DisplayPerfRpcInterface.getClient().savePng(fileName, data);
+//   }
+// }
+function renderFrameWithNoAccuSnap(vp: Viewport) {
+  IModelApp.accuSnap.clear();
+  // invalidate scene and redraw the frame to ensure that the viewport state is up to date before reading the image
+  vp.invalidateScene();
+  vp.renderFrame();
+}
+
+/**
+ * Converts an imageBuffer to its url data: string representation, so it can be downloaded/stored.
+ * @param imageBuffer image to convert
+ */
+function encodeToUrlData(imageBuffer?: ImageBuffer) {
+  if (!imageBuffer) {
+    return undefined;
+  }
+
+  // pass false to preserveAlpha
+  // from iModelJs: If false, the alpha channel will be set to 255 (fully opaque). This is recommended when converting an already-blended image (e.g., one obtained from [[Viewport.readImage]]).
+  return `data:image/png;base64,${imageBufferToBase64EncodedPng(
+    imageBuffer,
+    false
+  )}`;
 }

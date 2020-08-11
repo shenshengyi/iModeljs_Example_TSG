@@ -33,19 +33,20 @@ export class AppBackstageItemProvider {
           undefined,
           "icon-placeholder"
         ),
+
         BackstageItemUtilities.createStageLauncher(
-          "TestFeatureState",
+          "ViewsFrontstage",
           100,
           30,
-          "测试NBA",
+          "测试Viewer",
           undefined,
           "icon-placeholder"
         ),
         BackstageItemUtilities.createStageLauncher(
-          "ViewsFrontstage",
+          "TestFeatureState",
           100,
           40,
-          "测试Viewer",
+          "测试NBA",
           undefined,
           "icon-placeholder"
         ),

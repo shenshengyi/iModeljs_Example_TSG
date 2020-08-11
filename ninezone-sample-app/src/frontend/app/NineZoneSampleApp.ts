@@ -29,6 +29,11 @@ import { AppNotificationManager, UiFramework } from "@bentley/ui-framework";
 import { initRpc } from "../api/rpc";
 import { AppState, AppStore } from "./AppState";
 import { BackstageToggle } from "../app-ui/tools/NavigatorTools";
+import {
+  SampleLocateTool,
+  ToggleSkyboxTool,
+  Tool1,
+} from "../app-ui/frontstages/Features";
 
 /**
  * List of possible backends that ninezone-sample-app can use
@@ -72,13 +77,13 @@ export class NineZoneSampleApp {
     initPromises.push(NineZoneSampleApp.initializeRpc());
 
     // initialize localization for the app
-    initPromises.push(
-      IModelApp.i18n.registerNamespace("NineZoneSample").readFinished
-    );
-
+    // initPromises.push(
+    //   IModelApp.i18n.registerNamespace("NineZoneSample").readFinished
+    // );
+    initPromises.push(NineZoneSampleApp.registerTool());
     // create the application state store for Redux
     this._appState = new AppState();
-    BackstageToggle.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+
     // initialize UiFramework
     initPromises.push(UiFramework.initialize(this.store, IModelApp.i18n));
 
@@ -88,11 +93,17 @@ export class NineZoneSampleApp {
         activeLocale: IModelApp.i18n.languageList()[0],
       })
     );
-
+    initPromises.push(NineZoneSampleApp.registerTool());
     // the app is ready when all initialization promises are fulfilled
     await Promise.all(initPromises);
   }
-
+  private static async registerTool() {
+    // BackstageToggle.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+    await IModelApp.i18n.registerNamespace("NineZoneSample").readFinished;
+    SampleLocateTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+    ToggleSkyboxTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+    Tool1.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+  }
   private static async initializeRpc(): Promise<void> {
     const rpcParams = await this.getConnectionInfo();
     initRpc(rpcParams);

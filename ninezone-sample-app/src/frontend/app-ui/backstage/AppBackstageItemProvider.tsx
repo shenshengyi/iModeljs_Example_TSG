@@ -58,6 +58,22 @@ export class AppBackstageItemProvider {
           undefined,
           "icon-placeholder"
         ),
+        BackstageItemUtilities.createStageLauncher(
+          "UIViewportFrontstage",
+          100,
+          60,
+          "测试UI",
+          undefined,
+          "icon-placeholder"
+        ),
+        BackstageItemUtilities.createStageLauncher(
+          "FrontstageId.IModelIndexStage",
+          100,
+          70,
+          "模型索引",
+          undefined,
+          "icon-placeholder"
+        ),
       ];
     }
     return this._backstageItems;

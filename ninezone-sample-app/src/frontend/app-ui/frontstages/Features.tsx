@@ -36,8 +36,20 @@ import {
   imageBufferToBase64EncodedPng,
   canvasToImageBuffer,
   ParseAndRunResult,
+  ElementEditor3d,
+  AuthorizedFrontendRequestContext,
+  RemoteBriefcaseConnection,
+  SelectionSetEvent,
+  SpatialModelState,
+  GeometricModelState,
 } from "@bentley/imodeljs-frontend";
-import { ItemList, CommandItemDef, UiFramework } from "@bentley/ui-framework";
+import {
+  ItemList,
+  CommandItemDef,
+  UiFramework,
+  useActiveIModelConnection,
+  FrontstageManager,
+} from "@bentley/ui-framework";
 import {
   ColorDef,
   ViewStateProps,
@@ -48,12 +60,17 @@ import {
   DisplayStyleSettingsProps,
   DisplayStyle3dSettingsProps,
   ImageBuffer,
+  ModelQueryParams,
+  ModelProps,
 } from "@bentley/imodeljs-common";
 import {
   Id64String,
   Id64,
   BeDuration,
   isInstanceOf,
+  Id64Array,
+  Config,
+  OpenMode,
 } from "@bentley/bentleyjs-core";
 import {
   ClipVector,
@@ -61,12 +78,37 @@ import {
   ClipShape,
   ClipMaskXYZRangePlanes,
   Range3d,
+  YawPitchRollAngles,
+  IModelJson,
+  LineSegment3d,
+  XAndY,
 } from "@bentley/geometry-core";
-import { DisplayStyle3d } from "@bentley/imodeljs-backend";
+import {
+  DisplayStyle3d,
+  Category,
+  DrawingModel,
+  PhysicalModel,
+} from "@bentley/imodeljs-backend";
 import React from "react";
 import ReactDOM from "react-dom";
 import DynamicLink from "./DynamicLink";
-
+import { NineZoneSampleApp } from "../../app/NineZoneSampleApp";
+import {
+  AccessToken,
+  AuthorizedClientRequestContext,
+} from "@bentley/itwin-client";
+import {
+  ContextRegistryClient,
+  Project,
+} from "@bentley/context-registry-client";
+import { IModelQuery, VersionQuery, Version } from "@bentley/imodelhub-client";
+import {
+  Presentation,
+  SelectionChangeEventArgs,
+} from "@bentley/presentation-frontend";
+import { promises } from "fs";
+import { SimplePropertyDataProvider } from "@bentley/ui-components";
+import { WidgetState } from "@bentley/ui-abstract";
 export class TestFeature {
   public static CreateCommand(
     id: string,
@@ -120,6 +162,16 @@ export class TestFeature {
       "TestDownloadViewport",
       "测试DownloadViewport",
       TestDownloadViewport
+    ),
+    TestFeature.CreateCommand(
+      "testAllCategories",
+      "测试Categories",
+      testAllCategories
+    ),
+    TestFeature.CreateCommand(
+      "TestElementEdit",
+      "测试元素编辑",
+      TestElementEdit
     ),
   ]);
 }
@@ -696,34 +748,58 @@ export class Tool1 extends PrimitiveTool {
     _hit: HitDetail,
     _out?: LocateResponse
   ): Promise<LocateFilterStatus> {
-    alert("选中元素，拒绝");
-    return LocateFilterStatus.Reject;
+    // alert("选中元素，拒绝");
+    return LocateFilterStatus.Accept;
   }
+  //
+  async getToolTip(_hit: HitDetail): Promise<HTMLElement | string> {
+    return "hello,NBA2020";
+
+    // return super.getToolTip(_hit);
+  }
+
   public async onDataButtonDown(ev: BeButtonEvent): Promise<EventHandled> {
     // this.points.push(ev.point.clone());
     // this.setupAndPromptForNextAction();
     // alert("points size = " + this.points.length.toString());
-
-    const hit = await IModelApp.locateManager.doLocate(
+    // const hit = IModelApp.locateManager.currHit;
+    await IModelApp.locateManager.doLocate(
       new LocateResponse(),
       true,
       ev.point,
       ev.viewport,
       ev.inputSource
     );
+    const hit = IModelApp.locateManager.currHit;
     if (hit !== undefined) {
-      this.iModel.selectionSet.replace(hit.sourceId); // Replace current selection set with accepted element
-      const props = await this.iModel.elements.getProps(hit.sourceId);
-      if (props && props.length > 0) {
-        alert("选中元素的种类:" + props[0].classFullName);
-      }
+      const str = await IModelApp.toolAdmin.getToolTip(hit);
+
+      // const str = await IModelApp.viewManager.getElementToolTip(hit);
+      alert(str as string);
+      // document.append(str);
+      // document.body.appendChild(str as HTMLElement);
+      // alert(str.toString());
+      // const vp = IModelApp.viewManager.selectedView!;
+
+      // this.showLocateMessage(ev.viewPoint, vp, str);
+      // this.iModel.selectionSet.replace(hit.sourceId); // Replace current selection set with accepted element
+      // const props = await this.iModel.elements.getProps(hit.sourceId);
+      // if (props && props.length > 0) {
+      //   alert("选中元素的种类:" + props[0].classFullName);
+      // }
     } else {
       alert("没有选中元素");
     }
 
     return EventHandled.No;
   }
-
+  private showLocateMessage(
+    viewPt: XAndY,
+    vp: ScreenViewport,
+    msg: HTMLElement | string
+  ) {
+    if (IModelApp.viewManager.doesHostHaveFocus) vp.openToolTip(msg, viewPt);
+  }
   public async onResetButtonUp(_ev: BeButtonEvent): Promise<EventHandled> {
     IModelApp.toolAdmin.startDefaultTool();
     return EventHandled.No;
@@ -824,4 +900,291 @@ function encodeToUrlData(imageBuffer?: ImageBuffer) {
     imageBuffer,
     false
   )}`;
+}
+//测试Categories
+async function testAllCategories() {
+  const imodel:
+    | IModelConnection
+    | undefined = UiFramework.getIModelConnection();
+  if (imodel) {
+    const categories: Id64Array = [];
+
+    // Only use categories with elements in them
+    const selectUsedSpatialCategoryIds =
+      "SELECT DISTINCT Category.Id as id from BisCore.GeometricElement3d WHERE Category.Id IN (SELECT ECInstanceId from BisCore.SpatialCategory)";
+    for await (const row of imodel.query(selectUsedSpatialCategoryIds)) {
+      categories.push(row.id);
+    }
+    const st: Set<string> = new Set<string>();
+    for (const id of categories) {
+      const cats = await imodel.elements.getProps(id);
+      if (cats.length > 0) {
+        st.add(cats[0].classFullName);
+      }
+    }
+
+    alert("有categories个数=" + st.size.toString());
+    for (const it of st.values()) {
+      alert(it);
+    }
+  }
+}
+
+async function getIModelInfo() {
+  const imodelName = Config.App.get("imjs_test_imodel");
+  const projectName = Config.App.get("imjs_test_project", imodelName);
+
+  const requestContext: AuthorizedFrontendRequestContext = await AuthorizedFrontendRequestContext.create();
+  const connectClient = new ContextRegistryClient();
+  let project: Project;
+  try {
+    project = await connectClient.getProject(requestContext, {
+      $filter: `Name+eq+'${projectName}'`,
+    });
+  } catch (e) {
+    throw new Error(`Project with name "${projectName}" does not exist`);
+  }
+  const imodelQuery = new IModelQuery();
+  imodelQuery.byName(imodelName);
+  const imodels = await IModelApp.iModelClient.iModels.get(
+    requestContext,
+    project.wsgId,
+    imodelQuery
+  );
+
+  if (imodels.length === 0) {
+    throw new Error(
+      `iModel with name "${imodelName}" does not exist in project "${projectName}"`
+    );
+  }
+  const mm = imodels[0];
+  alert(project.wsgId);
+  alert(mm.wsgId);
+  const filePath = "D:\\imodelhub_DownLoad\\";
+  // await IModelApp.iModelClient.iModels.download(
+  //   requestContext,
+  //   project.wsgId,
+  //   filePath
+  // );
+  // const myiModel = await RemoteBriefcaseConnection.open(
+  //   project.wsgId,
+  //   mm.wsgId,
+  //   OpenMode.Readonly
+  // );
+  // if (myiModel) {
+  //   alert("打开成功");
+  // }
+  // const contextId = myiModel.contextId;
+  // await IModelApp.iModelClient.iModels.download(
+  //   requestContext,
+  //   contextId,
+  //   filePath
+  // );
+  // const pngImage = await IModelApp.iModelClient.thumbnails.download(
+  //   requestContext,
+  //   myiModel.iModelId,
+  //   { contextId: contextId!, size: "Small" }
+  // );
+  // if (pngImage) {
+  //   alert("文件下载成功");
+  //   alert(pngImage);
+  // } else {
+  //   alert("文件下载失败");
+  // }
+  // const ver = await IModelApp.iModelClient.versions.get(
+  //   requestContext,
+  //   myiModel.iModelId
+  // );
+  // if (ver.length > 0) {
+  //   alert(ver[0].name);
+  // }
+  // await myiModel.close();
+}
+function NoY(ev: SelectionSetEvent): void {
+  alert("修改元素了");
+  console.log(ev);
+}
+
+const onSelectionChanged = async (args: SelectionChangeEventArgs) => {
+  if (!IModelApp.viewManager.selectedView) {
+    // no viewport to zoom in
+    return;
+  }
+  // alert(args.source);
+  // if (args.source === "Tool") {
+  //   // selection originated from the viewport - don't change what it's displaying by zooming in
+  //   return;
+  // }
+  // alert("明月");
+  // determine what the viewport is hiliting
+  const hiliteSet = await Presentation.selection.getHiliteSet(args.imodel);
+  if (hiliteSet.elements) {
+    // note: the hilite list may contain models and subcategories as well - we don't
+    // care about them at this moment
+    await IModelApp.viewManager.selectedView.zoomToElements(hiliteSet.elements);
+    // alert(hiliteSet.elements);
+  }
+};
+//测试元素编辑
+let i = 0;
+let selectionListener: () => void;
+async function TestElementEdit() {
+  const str = UiFramework.translate("selectionScopeField.label");
+  alert(str);
+  // public static get verticalPropertyGridOpenCommand() {
+  //   return new CommandItemDef({
+  //     commandId: "verticalPropertyGridOpen",
+  //     iconSpec: "icon-placeholder",
+  //     labelKey: "SampleApp:buttons.openPropertyGrid",
+  //     tooltip: "Open Vertical PropertyGrid (Tooltip)",
+  //     execute: async () => {
+  //       const activeFrontstageDef = FrontstageManager.activeFrontstageDef;
+  //       if (activeFrontstageDef) {
+  //         const widgetDef = activeFrontstageDef.findWidgetDef("VerticalPropertyGrid");
+  //         if (widgetDef) {
+  //           widgetDef.setWidgetState(WidgetState.Open);
+  //         }
+  //       }
+  //     },
+  //   });
+  // }
+  // const activeFrontstageDef = FrontstageManager.activeFrontstageDef;
+  // if (activeFrontstageDef) {
+  //   const widgetDef = activeFrontstageDef.findWidgetDef("VerticalPropertyGrid");
+  //   if (widgetDef) {
+  //     widgetDef.setWidgetState(WidgetState.Open);
+  //   }
+  // }
+  // if (i % 2 == 0) {
+  //   selectionListener = Presentation.selection.selectionChange.addListener(
+  //     onSelectionChanged
+  //   );
+  // } else {
+  //   // Presentation.selection.selectionChange.removeListener(selectionListener);
+  //   selectionListener();
+  // }
+  // i++;
+  // SimplePropertyDataProvider;
+  // const modelQueryParams: ModelQueryParams = {
+  //   from: PhysicalModel.classFullName,
+  //   wantPrivate: false,
+  // };
+  // const imodel = UiFramework.getIModelConnection()!;
+  // // const models = await imodel.models.queryProps(modelQueryParams);
+  // // for (const p of models) {
+  // //   alert(p.classFullName);
+  // // }
+  // const viewSpecs = await imodel.views.getViewList({});
+  // const viewIds = viewSpecs.map((spec: IModelConnection.ViewSpec) => {
+  //   return spec.id!;
+  // });
+  // // alert("view number =" + viewIds.length.toString());
+  // const viewState = await imodel.views.load(viewIds[2]);
+  // IModelApp.viewManager.selectedView!.changeView(viewState);
+  // const modelIDs = models.map((model: ModelProps) => {
+  //   return model.id!;
+  // });
+  // alert("模型个数=" + models.length.toString());
+  // alert(modelIDs[0]);
+  // return { selectionCount: frameworkState.sessionState.numItemsSelected };
+  // const imodel = UiFramework.getIModelConnection();
+  // if (imodel) {
+  //   alert(imodel.name);
+  // } else {
+  //   alert("imodel is error");
+  // }
+  // await getIModelInfo();
+  // if (i == 0) {
+  //   UiFramework.getIModelConnection()!.selectionSet.onChanged.addListener(NoY);
+  // }
+  // IModelApp.viewManager.setViewCursor(IModelApp.viewManager.grabCursor);
+  // i++;
+  // const id = "0x20000000001";
+  // const imodel = UiFramework.getIModelConnection();
+  // const props = await imodel!.elements.getProps(id);
+  // if (props.length > 0) {
+  //   const prop = props[0];
+  //   await Presentation.selection.addToSelectionWithScope(
+  //     "",
+  //     imodel!,
+  //     prop.id!,
+  //     "element"
+  //   );
+  //   const selection = Presentation.selection.getSelection(imodel!);
+  //   const re = selection.has({
+  //     className: "BisCore:Model",
+  //     id: prop.id!,
+  //   });
+  //   if (re) {
+  //     alert("拥有");
+  //   } else {
+  //     alert("没有");
+  //   }
+  // } else {
+  //   alert("没有找到元素");
+  // }
+  // IModelApp.settings;
+  // const tool = IModelApp.toolAdmin.activeSettings.category;
+  // alert(tool);
+  // if (typeof window !== "undefined") {
+  //   alert("if (typeof window !== undefined");
+  // } else {
+  //   alert("if (typeof window======= undefined");
+  // }
+  // const accessToken = await IModelApp.authorizationClient!.getAccessToken();
+  // IModelApp.iModelClient.versions;
+  // const path = "D:/imodelhub_DownLoad/";
+  // await getIModelInfo();
+  // const p = await getIModelInfo();
+  // alert("p = " + p.projectId);
+  // const requestContext: AuthorizedFrontendRequestContext = await AuthorizedFrontendRequestContext.create();
+  // await IModelApp.iModelClient.iModel.download(
+  //   requestContext,
+  //   p.projectId,
+  //   path
+  // );
+  // let iModel = UiFramework.getIModelConnection();
+  // if (iModel!.isReadonly) {
+  //   alert("imodel是只读的");
+  // } else {
+  //   alert("imodel可读可写");
+  // }
+  // const editor = await ElementEditor3d.start(iModel!);
+  // const modelCode = await iModel!.editing.codes.makeModelCode(
+  //   iModel!.models.repositoryModelId,
+  //   "TestModel1"
+  // );
+  // const model = await iModel!.editing.models.createAndInsertPhysicalModel(
+  //   modelCode
+  // );
+  // const dictionaryModelId = await iModel!.models.getDictionaryModel();
+  // const category = await iModel!.editing.categories.createAndInsertSpatialCategory(
+  //   dictionaryModelId,
+  //   "TestCategory1",
+  //   { color: 0 }
+  // );
+  // const line = makeLine();
+  // const geomprops = IModelJson.Writer.toIModelJson(line);
+  // const origin = line.point0Ref;
+  // const angles = new YawPitchRollAngles();
+  // const props3d = {
+  //   classFullName: "Generic:PhysicalObject",
+  //   model,
+  //   category,
+  //   code: Code.createEmpty(),
+  // };
+  // await editor.createElement(props3d, origin, angles, geomprops);
+  // await editor.write();
+  // await editor.end();
+  // // assert(await iModel.editing.hasUnsavedChanges());
+  // await iModel!.saveChanges("create element test");
+  // // assert.isTrue(await iModel.editing.hasPendingTxns());
+  // // assert.isFalse(await iModel.editing.hasUnsavedChanges());
+  // alert("编辑完成");
+}
+function makeLine(p1?: Point3d, p2?: Point3d): LineSegment3d {
+  return LineSegment3d.create(
+    p1 || new Point3d(0, 0, 0),
+    p2 || new Point3d(0, 0, 0)
+  );
 }

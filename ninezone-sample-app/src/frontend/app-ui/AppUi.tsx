@@ -15,9 +15,12 @@ import { SampleFrontstage } from "./frontstages/SampleFrontstage";
 import { SampleFrontstage2 } from "./frontstages/SampleFrontstage2";
 import { TestFeatureStage } from "./frontstages/TestFeaturestage";
 import { ViewsFrontstage, LoadingStage } from "./frontstages/ViewsFrontstage";
+import { UIViewportFrontstage } from "./frontstages/UIViewFrontstage";
+import { IModelIndexStage } from "../MyStage/IModelIndexStage";
 
 /**
  * Example Ui Configuration for an iModel.js App
+import { IModelIndexStage } from "../MyStage/IModelIndexStage";
  */
 export class AppUi {
   // Initialize the ConfigurableUiManager
@@ -75,5 +78,11 @@ export class AppUi {
 
     const loadStage = new LoadingStage();
     FrontstageManager.addFrontstageProvider(loadStage);
+
+    const uiStage = new UIViewportFrontstage();
+    FrontstageManager.addFrontstageProvider(uiStage);
+
+    const modl = new IModelIndexStage();
+    FrontstageManager.addFrontstageProvider(modl);
   }
 }

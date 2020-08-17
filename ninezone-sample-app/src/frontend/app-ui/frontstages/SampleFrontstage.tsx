@@ -1,12 +1,28 @@
 /*---------------------------------------------------------------------------------------------
-* Copyright (c) Bentley Systems, Incorporated. All rights reserved.
-* See LICENSE.md in the project root for license terms and full copyright notice.
-*--------------------------------------------------------------------------------------------*/
+ * Copyright (c) Bentley Systems, Incorporated. All rights reserved.
+ * See LICENSE.md in the project root for license terms and full copyright notice.
+ *--------------------------------------------------------------------------------------------*/
 import { ViewState } from "@bentley/imodeljs-frontend";
 import {
-  ContentGroup, ContentLayoutDef, ContentViewManager, CoreTools, CustomItemDef, Frontstage,
-  FrontstageProvider, IModelConnectedNavigationWidget, IModelConnectedViewSelector, IModelViewportControl,
-  ItemList, StagePanel, SyncUiEventId, ToolWidget, UiFramework, Widget, WidgetState, Zone, ZoneState,
+  ContentGroup,
+  ContentLayoutDef,
+  ContentViewManager,
+  CoreTools,
+  CustomItemDef,
+  Frontstage,
+  FrontstageProvider,
+  IModelConnectedNavigationWidget,
+  IModelConnectedViewSelector,
+  IModelViewportControl,
+  ItemList,
+  StagePanel,
+  SyncUiEventId,
+  ToolWidget,
+  UiFramework,
+  Widget,
+  WidgetState,
+  Zone,
+  ZoneState,
 } from "@bentley/ui-framework";
 import * as React from "react";
 import { AppUi } from "../AppUi";
@@ -44,7 +60,7 @@ export class SampleFrontstage extends FrontstageProvider {
           },
         },
         {
-          classId: TableContent,
+          classId: TableContent.ID,
           applicationData: {
             iModelConnection: UiFramework.getIModelConnection(),
           },
@@ -55,12 +71,13 @@ export class SampleFrontstage extends FrontstageProvider {
 
   /** Define the Frontstage properties */
   public get frontstage() {
-
     return (
-      <Frontstage id="SampleFrontstage"
-        defaultTool={CoreTools.selectElementCommand} defaultLayout={this._contentLayoutDef} contentGroup={this._contentGroup}
+      <Frontstage
+        id="SampleFrontstage"
+        defaultTool={CoreTools.selectElementCommand}
+        defaultLayout={this._contentLayoutDef}
+        contentGroup={this._contentGroup}
         isInFooterMode={true}
-
         topLeft={
           <Zone
             widgets={[
@@ -68,59 +85,70 @@ export class SampleFrontstage extends FrontstageProvider {
             ]}
           />
         }
-        topCenter={
-          <Zone
-            widgets={[
-              <Widget isToolSettings={true} />,
-            ]}
-          />
-        }
+        // topCenter={<Zone widgets={[<Widget isToolSettings={true} />]} />}
         topRight={
           <Zone
             widgets={[
               /** Use standard NavigationWidget delivered in ui-framework */
-              <Widget isFreeform={true} element={<IModelConnectedNavigationWidget suffixVerticalItems={new ItemList([this._viewSelectorItemDef])} />} />,
-            ]}
-          />
-        }
-        centerRight={
-          <Zone defaultState={ZoneState.Minimized} allowsMerging={true}
-            widgets={[
-              <Widget control={TreeWidget} fillZone={true}
-                iconSpec="icon-tree" labelKey="NineZoneSample:components.tree"
-                applicationData={{
-                  iModelConnection: UiFramework.getIModelConnection(),
-                }}
+              <Widget
+                isFreeform={true}
+                element={
+                  <IModelConnectedNavigationWidget
+                    suffixVerticalItems={
+                      new ItemList([this._viewSelectorItemDef])
+                    }
+                  />
+                }
               />,
             ]}
           />
         }
-        bottomCenter={
-          <Zone
-            widgets={[
-              <Widget isStatusBar={true} control={AppStatusBarWidget} />,
-            ]}
-          />
-        }
-        bottomRight={
-          <Zone defaultState={ZoneState.Open} allowsMerging={true}
-            widgets={[
-              <Widget id="Properties" control={PropertyGridWidget} defaultState={WidgetState.Closed} fillZone={true}
-                iconSpec="icon-properties-list" labelKey="NineZoneSample:components.properties"
-                applicationData={{
-                  iModelConnection: UiFramework.getIModelConnection(),
-                }}
-                syncEventIds={[SyncUiEventId.SelectionSetChanged]}
-                stateFunc={this._determineWidgetStateForSelectionSet}
-              />,
-            ]}
-          />
-        }
-        rightPanel={
-          <StagePanel
-            allowedZones={[6, 9]}
-          />
-        }
+        // centerRight={
+        //   <Zone
+        //     defaultState={ZoneState.Minimized}
+        //     allowsMerging={true}
+        //     widgets={[
+        //       <Widget
+        //         control={TreeWidget}
+        //         fillZone={true}
+        //         iconSpec="icon-tree"
+        //         labelKey="NineZoneSample:components.tree"
+        //         applicationData={{
+        //           iModelConnection: UiFramework.getIModelConnection(),
+        //         }}
+        //       />,
+        //     ]}
+        //   />
+        // }
+        // bottomCenter={
+        //   <Zone
+        //     widgets={[
+        //       <Widget isStatusBar={true} control={AppStatusBarWidget} />,
+        //     ]}
+        //   />
+        // }
+        // bottomRight={
+        //   <Zone
+        //     defaultState={ZoneState.Open}
+        //     allowsMerging={true}
+        //     widgets={[
+        //       <Widget
+        //         id="Properties"
+        //         control={PropertyGridWidget}
+        //         defaultState={WidgetState.Closed}
+        //         fillZone={true}
+        //         iconSpec="icon-properties-list"
+        //         labelKey="NineZoneSample:components.properties"
+        //         applicationData={{
+        //           iModelConnection: UiFramework.getIModelConnection(),
+        //         }}
+        //         syncEventIds={[SyncUiEventId.SelectionSetChanged]}
+        //         stateFunc={this._determineWidgetStateForSelectionSet}
+        //       />,
+        //     ]}
+        //   />
+        // }
+        rightPanel={<StagePanel allowedZones={[6, 9]} />}
       />
     );
   }
@@ -128,10 +156,14 @@ export class SampleFrontstage extends FrontstageProvider {
   /** Determine the WidgetState based on the Selection Set */
   private _determineWidgetStateForSelectionSet = (): WidgetState => {
     const activeContentControl = ContentViewManager.getActiveContentControl();
-    if (activeContentControl && activeContentControl.viewport && (activeContentControl.viewport.view.iModel.selectionSet.size > 0))
+    if (
+      activeContentControl &&
+      activeContentControl.viewport &&
+      activeContentControl.viewport.view.iModel.selectionSet.size > 0
+    )
       return WidgetState.Open;
     return WidgetState.Closed;
-  }
+  };
 
   /** Get the CustomItemDef for ViewSelector  */
   private get _viewSelectorItemDef() {
@@ -139,23 +171,19 @@ export class SampleFrontstage extends FrontstageProvider {
       customId: "sampleApp:viewSelector",
       reactElement: (
         <IModelConnectedViewSelector
-          listenForShowUpdates={false}  // Demo for showing only the same type of view in ViewSelector - See IModelViewport.tsx, onActivated
+          listenForShowUpdates={false} // Demo for showing only the same type of view in ViewSelector - See IModelViewport.tsx, onActivated
         />
       ),
     });
   }
-
 }
 
 /**
  * Define a ToolWidget with Buttons to display in the TopLeft zone.
  */
 class SampleToolWidget extends React.Component {
-
   public render(): React.ReactNode {
-    const horizontalItems = new ItemList([
-      CoreTools.selectElementCommand,
-    ]);
+    const horizontalItems = new ItemList([CoreTools.selectElementCommand]);
 
     return (
       <ToolWidget

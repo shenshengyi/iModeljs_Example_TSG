@@ -23,7 +23,7 @@ import {
   IModelApp,
   IModelAppOptions,
 } from "@bentley/imodeljs-frontend";
-import { UrlDiscoveryClient } from "@bentley/itwin-client";
+import { UrlDiscoveryClient, AccessToken } from "@bentley/itwin-client";
 import { Presentation } from "@bentley/presentation-frontend";
 import { AppNotificationManager, UiFramework } from "@bentley/ui-framework";
 import { initRpc } from "../api/rpc";
@@ -34,6 +34,7 @@ import {
   ToggleSkyboxTool,
   Tool1,
 } from "../app-ui/frontstages/Features";
+import { IModelCloudEnvironment } from "@bentley/imodelhub-client";
 
 /**
  * List of possible backends that ninezone-sample-app can use
@@ -49,11 +50,9 @@ export enum UseBackend {
 // subclass of IModelApp needed to use imodeljs-frontend
 export class NineZoneSampleApp {
   private static _appState: AppState;
-
   public static get oidcClient(): FrontendAuthorizationClient {
     return IModelApp.authorizationClient as FrontendAuthorizationClient;
   }
-
   public static get store(): AppStore {
     return this._appState.store;
   }
@@ -77,9 +76,9 @@ export class NineZoneSampleApp {
     initPromises.push(NineZoneSampleApp.initializeRpc());
 
     // initialize localization for the app
-    // initPromises.push(
-    //   IModelApp.i18n.registerNamespace("NineZoneSample").readFinished
-    // );
+    initPromises.push(
+      IModelApp.i18n.registerNamespace("NineZoneSample").readFinished
+    );
     initPromises.push(NineZoneSampleApp.registerTool());
     // create the application state store for Redux
     this._appState = new AppState();
@@ -110,8 +109,19 @@ export class NineZoneSampleApp {
   }
 
   private static async initializeOidc() {
+    // •	openid
+    // •	email
+    // •	profile
+    // •	organization
+    // •	imodelhub
+    // •	urlps-third-party
+    // •	context-registry-service:read-only
+    // •	general-purpose-imodeljs-backend
+    // •	imodeljs-router
+    // •	product-settings-service
+
     const scope =
-      "openid email profile organization imodelhub context-registry-service:read-only product-settings-service projectwise-share urlps-third-party";
+      "openid email profile organization imodelhub context-registry-service:read-only product-settings-service urlps-third-party";
 
     if (isElectronRenderer) {
       const clientId = Config.App.getString("imjs_electron_test_client_id");

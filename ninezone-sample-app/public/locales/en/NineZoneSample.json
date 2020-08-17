@@ -1,12 +1,12 @@
 {
-  "welcome-message": "Welcome to 9-Zone Sample App",
-  "signing-in": "Signing-in",
+  "welcome-message": "欢迎使用9-Zone样例App",
+  "signing-in": "登录进入",
   "components": {
     "imodel-picker": {
-      "open-imodel": "Open Sample iModel",
-      "signout": "Sign Out"
+      "open-imodel": "打开样例iModel",
+      "signout": "登录退出"
     },
-    "properties": "Properties",
+    "properties": "属性",
     "table": "Table",
     "tree": "Tree"
   },
@@ -17,7 +17,7 @@
   },
   "no-content": "No data for this content view",
   "backstage": {
-    "sampleFrontstage": "Single View Frontstage",
-    "sampleFrontstage2": "Multiple Views Frontstage"
+    "sampleFrontstage": "单视口界面",
+    "sampleFrontstage2": "多视口界面"
   }
 }

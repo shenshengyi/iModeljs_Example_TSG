@@ -17,6 +17,8 @@ import { TestFeatureStage } from "./frontstages/TestFeaturestage";
 import { ViewsFrontstage, LoadingStage } from "./frontstages/ViewsFrontstage";
 import { UIViewportFrontstage } from "./frontstages/UIViewFrontstage";
 import { IModelIndexStage } from "../MyStage/IModelIndexStage";
+import { TableFrontstage } from "./frontstages/TableStage";
+import { TreeFrontstage } from "./frontstages/TreeStage";
 
 /**
  * Example Ui Configuration for an iModel.js App
@@ -84,5 +86,11 @@ export class AppUi {
 
     const modl = new IModelIndexStage();
     FrontstageManager.addFrontstageProvider(modl);
+
+    const table = new TableFrontstage(viewStates);
+    FrontstageManager.addFrontstageProvider(table);
+
+    const tree = new TreeFrontstage(viewStates);
+    FrontstageManager.addFrontstageProvider(tree);
   }
 }

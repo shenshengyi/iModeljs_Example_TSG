@@ -72,6 +72,8 @@ import {
   Config,
   OpenMode,
 } from "@bentley/bentleyjs-core";
+import * as fs from "fs";
+import * as path from "path";
 import {
   ClipVector,
   Point3d,
@@ -1029,8 +1031,10 @@ const onSelectionChanged = async (args: SelectionChangeEventArgs) => {
 let i = 0;
 let selectionListener: () => void;
 async function TestElementEdit() {
-  const str = UiFramework.translate("selectionScopeField.label");
-  alert(str);
+  // const path = "D:/iModelJS_TSG_GIT/iModeljs_Example_TSG/testData/testData.xml";
+  // fs.appendFileSync(path, "hello");
+  // const str = UiFramework.translate("selectionScopeField.label");
+  // alert(str);
   // public static get verticalPropertyGridOpenCommand() {
   //   return new CommandItemDef({
   //     commandId: "verticalPropertyGridOpen",

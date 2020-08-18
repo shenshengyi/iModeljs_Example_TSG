@@ -74,6 +74,22 @@ export class AppBackstageItemProvider {
           undefined,
           "icon-placeholder"
         ),
+        BackstageItemUtilities.createStageLauncher(
+          "TableFrontstage",
+          100,
+          80,
+          "表格显示imodel内容",
+          undefined,
+          "icon-placeholder"
+        ),
+        BackstageItemUtilities.createStageLauncher(
+          "TreeFrontstage",
+          100,
+          90,
+          "树形显示imodel内容",
+          undefined,
+          "icon-placeholder"
+        ),
       ];
     }
     return this._backstageItems;

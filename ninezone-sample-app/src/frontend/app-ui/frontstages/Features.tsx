@@ -42,6 +42,8 @@ import {
   SelectionSetEvent,
   SpatialModelState,
   GeometricModelState,
+  CoordSource,
+  ChangeFlags,
 } from "@bentley/imodeljs-frontend";
 import {
   ItemList,
@@ -111,6 +113,9 @@ import {
 import { promises } from "fs";
 import { SimplePropertyDataProvider } from "@bentley/ui-components";
 import { WidgetState } from "@bentley/ui-abstract";
+import { TRANSIENT_ELEMENT_CLASSNAME } from "@bentley/presentation-frontend/lib/presentation-frontend/selection/SelectionManager";
+import { ViewportSelectionHandler } from "@bentley/presentation-components/lib/presentation-components/viewport/WithUnifiedSelection";
+import { KeySet } from "@bentley/presentation-common";
 export class TestFeature {
   public static CreateCommand(
     id: string,
@@ -1030,7 +1035,129 @@ const onSelectionChanged = async (args: SelectionChangeEventArgs) => {
 //测试元素编辑
 let i = 0;
 let selectionListener: () => void;
+const _executeQuery = async (query: string) => {
+  const rows: string[] = [];
+  const imodel = UiFramework.getIModelConnection()!;
+  for await (const row of imodel.query(query)) rows.push(row.id);
+
+  return rows;
+};
+//public readonly onViewportChanged = new BeEvent<(vp: Viewport, changed: ChangeFlags) => void>();
+function changeView(vp: Viewport) {
+  alert(vp.iModel);
+}
+const recursiveWait = async (
+  pred: () => boolean,
+  repeater: () => Promise<void>
+) => {
+  if (pred()) {
+    await BeDuration.wait(0);
+    await repeater();
+  }
+};
+
+export const waitForAllAsyncs = async (
+  handlers: Array<{ pendingAsyncs: Set<string> }>
+) => {
+  const pred = () => handlers.some((h) => h.pendingAsyncs.size > 0);
+  await recursiveWait(pred, async () => waitForAllAsyncs(handlers));
+};
+
+export const waitForPendingAsyncs = async (handler: {
+  pendingAsyncs: Set<string>;
+}) => {
+  const initialAsyncs = [...handler.pendingAsyncs];
+  const pred = () =>
+    initialAsyncs.filter((initial) => handler.pendingAsyncs.has(initial))
+      .length > 0;
+  const recursiveWaitInternal = async (): Promise<void> =>
+    recursiveWait(pred, recursiveWaitInternal);
+  await recursiveWaitInternal();
+};
+export const createRandomTransientId = () =>
+  Id64.fromLocalAndBriefcaseIds(123, 0xffffff);
 async function TestElementEdit() {
+  const imodel = UiFramework.getIModelConnection()!;
+  console.log(imodel.iModelId);
+  const subjectId = imodel.elements.rootSubjectId;
+  const instances = {
+    subject: {
+      key: {
+        className: "BisCore:Subject",
+        id: subjectId,
+        // id: Id64.fromLocalAndBriefcaseIds(1, 0),
+      },
+      nestedModelIds: [imodel.iModelId],
+      // nestedModelIds: [Id64.fromLocalAndBriefcaseIds(28, 0)],
+    },
+    model: {
+      key: {
+        className: "BisCore:PhysicalModel",
+        id: Id64.fromLocalAndBriefcaseIds(28, 0),
+      },
+      nestedModelIds: [], // WIP: no nested models... need a better imodel
+    },
+    category: {
+      key: {
+        className: "BisCore:SpatialCategory",
+        id: Id64.fromLocalAndBriefcaseIds(23, 0),
+      },
+      subCategoryIds: [Id64.fromLocalAndBriefcaseIds(24, 0)],
+    },
+    subcategory: {
+      key: {
+        className: "BisCore:SubCategory",
+        id: Id64.fromLocalAndBriefcaseIds(24, 0),
+      },
+    },
+    assemblyElement: {
+      key: {
+        className: "Generic:PhysicalObject",
+        id: Id64.fromLocalAndBriefcaseIds(117, 0),
+      },
+      childElementIds: [], // WIP: no assemblies... need a better imodel
+    },
+    leafElement: {
+      key: {
+        className: "Generic:PhysicalObject",
+        id: Id64.fromLocalAndBriefcaseIds(116, 0),
+      },
+    },
+    transientElement: {
+      key: {
+        className: TRANSIENT_ELEMENT_CLASSNAME,
+        id: createRandomTransientId(),
+      },
+    },
+  };
+
+  // const imodel = UiFramework.getIModelConnection()!;
+  // Presentation.selection.clearSelection("", imodel);
+  const handler = new ViewportSelectionHandler({ imodel });
+  Presentation.selection.addToSelection(
+    "",
+    imodel,
+    new KeySet([instances.subject.key])
+  );
+  await waitForAllAsyncs([handler]);
+  const size = imodel.hilited.models.size;
+  const size2 = instances.subject.nestedModelIds.length;
+  alert("size = " + size.toString());
+  alert("size2 = " + size2.toString());
+  // await waitForAllAsyncs([handler]);
+  // Presentation.selection.clearSelection("", imodel);
+  // alert("添加监听");
+  // const vp = IModelApp.viewManager.selectedView!;
+  // alert(vp.viewportId);
+  // vp.onViewChanged.addListener(changeView);
+  // const imodel = UiFramework.getIModelConnection()!;
+  // const allDrawingCategories =
+  //   "SELECT ECInstanceId from BisCore.DrawingCategory";
+  // const categories = await _executeQuery(allDrawingCategories);
+  // alert("个数=" + categories.length.toString());
+  // for (const id of categories) {
+  //   console.log(id);
+  // }
   // const path = "D:/iModelJS_TSG_GIT/iModeljs_Example_TSG/testData/testData.xml";
   // fs.appendFileSync(path, "hello");
   // const str = UiFramework.translate("selectionScopeField.label");

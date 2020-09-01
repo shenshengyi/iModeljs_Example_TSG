@@ -13,7 +13,7 @@ import { AppUi } from "./app-ui/AppUi";
 import App from "./components/App";
 import "./index.scss";
 import { Button } from "@bentley/ui-core";
-
+import { IModelApp } from "@bentley/imodeljs-frontend";
 // Setup logging immediately to pick up any logging during NineZoneSampleApp.startup()
 Logger.initializeToConsole();
 Logger.setLevelDefault(LogLevel.Warning);
@@ -25,7 +25,6 @@ Logger.setLevel(AppLoggerCategory.Frontend, LogLevel.Info);
 
   // Initialize the AppUi & ConfigurableUiManager
   AppUi.initialize();
-
   // when initialization is complete, render
   ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
 })(); // tslint:disable-line:no-floating-promises

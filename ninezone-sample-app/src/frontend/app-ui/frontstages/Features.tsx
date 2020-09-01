@@ -9,113 +9,65 @@ import {
   PrimitiveTool,
   BeButtonEvent,
   EventHandled,
-  AccuSnap,
   ViewClipClearTool,
   ViewClipDecorationProvider,
   ScreenViewport,
-  FitViewTool,
   IModelConnection,
-  SpatialViewState,
   DrawingViewState,
-  DrawingModelState,
-  SheetModelState,
-  SectionDrawingModelState,
   ViewState2d,
   DisplayStyle3dState,
-  DisplayStyle2dState,
   Tool,
   Environment,
   Decorator,
   DecorateContext,
   GraphicType,
-  ViewRect,
   HitDetail,
   LocateFilterStatus,
   LocateResponse,
   BeWheelEvent,
   imageBufferToBase64EncodedPng,
   canvasToImageBuffer,
-  ParseAndRunResult,
-  ElementEditor3d,
   AuthorizedFrontendRequestContext,
-  RemoteBriefcaseConnection,
   SelectionSetEvent,
-  SpatialModelState,
-  GeometricModelState,
-  CoordSource,
-  ChangeFlags,
 } from "@bentley/imodeljs-frontend";
-import {
-  ItemList,
-  CommandItemDef,
-  UiFramework,
-  useActiveIModelConnection,
-  FrontstageManager,
-} from "@bentley/ui-framework";
+import { ItemList, CommandItemDef, UiFramework } from "@bentley/ui-framework";
 import {
   ColorDef,
   ViewStateProps,
   IModel,
   Code,
   ViewDefinition2dProps,
-  SubCategoryOverride,
-  DisplayStyleSettingsProps,
-  DisplayStyle3dSettingsProps,
   ImageBuffer,
-  ModelQueryParams,
-  ModelProps,
 } from "@bentley/imodeljs-common";
 import {
   Id64String,
   Id64,
   BeDuration,
-  isInstanceOf,
   Id64Array,
   Config,
-  OpenMode,
 } from "@bentley/bentleyjs-core";
-import * as fs from "fs";
-import * as path from "path";
 import {
   ClipVector,
   Point3d,
   ClipShape,
   ClipMaskXYZRangePlanes,
   Range3d,
-  YawPitchRollAngles,
-  IModelJson,
   LineSegment3d,
   XAndY,
 } from "@bentley/geometry-core";
 import {
-  DisplayStyle3d,
-  Category,
-  DrawingModel,
-  PhysicalModel,
-} from "@bentley/imodeljs-backend";
-import React from "react";
-import ReactDOM from "react-dom";
-import DynamicLink from "./DynamicLink";
-import { NineZoneSampleApp } from "../../app/NineZoneSampleApp";
-import {
-  AccessToken,
-  AuthorizedClientRequestContext,
-} from "@bentley/itwin-client";
-import {
   ContextRegistryClient,
   Project,
 } from "@bentley/context-registry-client";
-import { IModelQuery, VersionQuery, Version } from "@bentley/imodelhub-client";
+import { IModelQuery } from "@bentley/imodelhub-client";
 import {
   Presentation,
   SelectionChangeEventArgs,
 } from "@bentley/presentation-frontend";
-import { promises } from "fs";
-import { SimplePropertyDataProvider } from "@bentley/ui-components";
-import { WidgetState } from "@bentley/ui-abstract";
 import { TRANSIENT_ELEMENT_CLASSNAME } from "@bentley/presentation-frontend/lib/presentation-frontend/selection/SelectionManager";
 import { ViewportSelectionHandler } from "@bentley/presentation-components/lib/presentation-components/viewport/WithUnifiedSelection";
 import { KeySet } from "@bentley/presentation-common";
+import { VersionComparisonTool } from "../../Tool/VersionComparisonTool";
 export class TestFeature {
   public static CreateCommand(
     id: string,
@@ -274,20 +226,6 @@ async function TestregisterEmphasizeElement() {
   //   alert("已经注册EmphasizeElements");
   // }
 }
-//建立活动特性覆盖来强调元素，并应用颜色/透明度覆盖。
-
-class MyProvider implements FeatureOverrideProvider {
-  public id: string = "MyProvider";
-  public addFeatureOverrides(
-    ovrs: FeatureSymbology.Overrides,
-    vp: Viewport
-  ): void {
-    /* ... */
-    alert(ovrs.alwaysDrawn);
-    alert(vp.alwaysDrawn);
-  }
-  //0x400000003cc
-}
 
 async function TestZoom() {
   const vp = IModelApp.viewManager.selectedView!;
@@ -329,60 +267,6 @@ async function TestDecorator() {
   IModelApp.viewManager.addDecorator(decorate);
 }
 
-class MyTool extends PrimitiveTool {
-  public static toolId = "MyTool";
-  public static iconSpec = "icon-star"; // <== Tool button should use whatever icon you have here...
-  private _createMarkerCallback: (pt: Point3d) => {};
-  constructor(callback: (pt: Point3d) => {}) {
-    super();
-    this._createMarkerCallback = callback;
-  }
-  public isCompatibleViewport(
-    vp: Viewport | undefined,
-    isSelectedViewChange: boolean
-  ): boolean {
-    return (
-      super.isCompatibleViewport(vp, isSelectedViewChange) &&
-      undefined !== vp &&
-      vp.view.isSpatialView()
-    );
-  }
-  public isValidLocation(_ev: BeButtonEvent, _isButtonEvent: boolean): boolean {
-    return true;
-  } // Allow snapping to terrain, etc. outside project extents.
-  public requireWriteableTarget(): boolean {
-    return false;
-  } // Tool doesn't modify the imodel.
-  public onPostInstall() {
-    super.onPostInstall();
-    this.setupAndPromptForNextAction();
-  }
-  public onRestartTool(): void {
-    this.exitTool();
-  }
-
-  protected setupAndPromptForNextAction(): void {
-    // Accusnap adjusts the effective cursor location to 'snap' to geometry in the view
-    IModelApp.accuSnap.enableSnap(true);
-  }
-
-  // A reset button is the secondary action button, ex. right mouse button.
-  public async onResetButtonUp(_ev: BeButtonEvent): Promise<EventHandled> {
-    this.onReinitialize(); // Calls onRestartTool to exit
-    return EventHandled.No;
-  }
-
-  // A data button is the primary action button, ex. left mouse button.
-  public async onDataButtonDown(ev: BeButtonEvent): Promise<EventHandled> {
-    if (undefined === ev.viewport) return EventHandled.No; // Shouldn't really happen
-
-    // ev.point is the current world coordinate point adjusted for snap and locks
-    this._createMarkerCallback(ev.point);
-
-    this.onReinitialize(); // Calls onRestartTool to exit
-    return EventHandled.No;
-  }
-}
 //测试太阳时间阴影
 async function TestShadow() {
   const vp = IModelApp.viewManager.selectedView;
@@ -480,7 +364,8 @@ export class ToggleSkyboxTool extends DisplayStyleTool {
 //测试工具
 async function TestTool() {
   //IModelApp.tools.run(FitViewTool.toolId);//ToggleSkyboxTool
-  IModelApp.tools.run(ToggleSkyboxTool.toolId); //ToggleSkyboxTool
+  //IModelApp.tools.run(ToggleSkyboxTool.toolId); //ToggleSkyboxTool
+  IModelApp.tools.run(VersionComparisonTool.toolId); //ToggleSkyboxTool
 }
 //测试view
 async function TestView() {
@@ -800,13 +685,6 @@ export class Tool1 extends PrimitiveTool {
 
     return EventHandled.No;
   }
-  private showLocateMessage(
-    viewPt: XAndY,
-    vp: ScreenViewport,
-    msg: HTMLElement | string
-  ) {
-    if (IModelApp.viewManager.doesHostHaveFocus) vp.openToolTip(msg, viewPt);
-  }
   public async onResetButtonUp(_ev: BeButtonEvent): Promise<EventHandled> {
     IModelApp.toolAdmin.startDefaultTool();
     return EventHandled.No;
@@ -937,115 +815,6 @@ async function testAllCategories() {
   }
 }
 
-async function getIModelInfo() {
-  const imodelName = Config.App.get("imjs_test_imodel");
-  const projectName = Config.App.get("imjs_test_project", imodelName);
-
-  const requestContext: AuthorizedFrontendRequestContext = await AuthorizedFrontendRequestContext.create();
-  const connectClient = new ContextRegistryClient();
-  let project: Project;
-  try {
-    project = await connectClient.getProject(requestContext, {
-      $filter: `Name+eq+'${projectName}'`,
-    });
-  } catch (e) {
-    throw new Error(`Project with name "${projectName}" does not exist`);
-  }
-  const imodelQuery = new IModelQuery();
-  imodelQuery.byName(imodelName);
-  const imodels = await IModelApp.iModelClient.iModels.get(
-    requestContext,
-    project.wsgId,
-    imodelQuery
-  );
-
-  if (imodels.length === 0) {
-    throw new Error(
-      `iModel with name "${imodelName}" does not exist in project "${projectName}"`
-    );
-  }
-  const mm = imodels[0];
-  alert(project.wsgId);
-  alert(mm.wsgId);
-  const filePath = "D:\\imodelhub_DownLoad\\";
-  // await IModelApp.iModelClient.iModels.download(
-  //   requestContext,
-  //   project.wsgId,
-  //   filePath
-  // );
-  // const myiModel = await RemoteBriefcaseConnection.open(
-  //   project.wsgId,
-  //   mm.wsgId,
-  //   OpenMode.Readonly
-  // );
-  // if (myiModel) {
-  //   alert("打开成功");
-  // }
-  // const contextId = myiModel.contextId;
-  // await IModelApp.iModelClient.iModels.download(
-  //   requestContext,
-  //   contextId,
-  //   filePath
-  // );
-  // const pngImage = await IModelApp.iModelClient.thumbnails.download(
-  //   requestContext,
-  //   myiModel.iModelId,
-  //   { contextId: contextId!, size: "Small" }
-  // );
-  // if (pngImage) {
-  //   alert("文件下载成功");
-  //   alert(pngImage);
-  // } else {
-  //   alert("文件下载失败");
-  // }
-  // const ver = await IModelApp.iModelClient.versions.get(
-  //   requestContext,
-  //   myiModel.iModelId
-  // );
-  // if (ver.length > 0) {
-  //   alert(ver[0].name);
-  // }
-  // await myiModel.close();
-}
-function NoY(ev: SelectionSetEvent): void {
-  alert("修改元素了");
-  console.log(ev);
-}
-
-const onSelectionChanged = async (args: SelectionChangeEventArgs) => {
-  if (!IModelApp.viewManager.selectedView) {
-    // no viewport to zoom in
-    return;
-  }
-  // alert(args.source);
-  // if (args.source === "Tool") {
-  //   // selection originated from the viewport - don't change what it's displaying by zooming in
-  //   return;
-  // }
-  // alert("明月");
-  // determine what the viewport is hiliting
-  const hiliteSet = await Presentation.selection.getHiliteSet(args.imodel);
-  if (hiliteSet.elements) {
-    // note: the hilite list may contain models and subcategories as well - we don't
-    // care about them at this moment
-    await IModelApp.viewManager.selectedView.zoomToElements(hiliteSet.elements);
-    // alert(hiliteSet.elements);
-  }
-};
-//测试元素编辑
-let i = 0;
-let selectionListener: () => void;
-const _executeQuery = async (query: string) => {
-  const rows: string[] = [];
-  const imodel = UiFramework.getIModelConnection()!;
-  for await (const row of imodel.query(query)) rows.push(row.id);
-
-  return rows;
-};
-//public readonly onViewportChanged = new BeEvent<(vp: Viewport, changed: ChangeFlags) => void>();
-function changeView(vp: Viewport) {
-  alert(vp.iModel);
-}
 const recursiveWait = async (
   pred: () => boolean,
   repeater: () => Promise<void>
@@ -1144,6 +913,8 @@ async function TestElementEdit() {
   const size2 = instances.subject.nestedModelIds.length;
   alert("size = " + size.toString());
   alert("size2 = " + size2.toString());
+
+  // IModelApp.mapLayerFormatRegistry.createImageryProvider();
   // await waitForAllAsyncs([handler]);
   // Presentation.selection.clearSelection("", imodel);
   // alert("添加监听");
@@ -1312,10 +1083,4 @@ async function TestElementEdit() {
   // // assert.isTrue(await iModel.editing.hasPendingTxns());
   // // assert.isFalse(await iModel.editing.hasUnsavedChanges());
   // alert("编辑完成");
-}
-function makeLine(p1?: Point3d, p2?: Point3d): LineSegment3d {
-  return LineSegment3d.create(
-    p1 || new Point3d(0, 0, 0),
-    p2 || new Point3d(0, 0, 0)
-  );
 }

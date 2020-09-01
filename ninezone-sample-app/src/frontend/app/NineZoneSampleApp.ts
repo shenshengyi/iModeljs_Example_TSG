@@ -35,6 +35,7 @@ import {
   Tool1,
 } from "../app-ui/frontstages/Features";
 import { IModelCloudEnvironment } from "@bentley/imodelhub-client";
+import { VersionComparisonTool } from "../Tool/VersionComparisonTool";
 
 /**
  * List of possible backends that ninezone-sample-app can use
@@ -102,6 +103,9 @@ export class NineZoneSampleApp {
     SampleLocateTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
     ToggleSkyboxTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
     Tool1.register(IModelApp.i18n.getNamespace("NineZoneSample"));
+    VersionComparisonTool.register(
+      IModelApp.i18n.getNamespace("NineZoneSample")
+    );
   }
   private static async initializeRpc(): Promise<void> {
     const rpcParams = await this.getConnectionInfo();

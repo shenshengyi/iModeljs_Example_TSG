@@ -36,6 +36,7 @@ import {
 } from "../app-ui/frontstages/Features";
 import { IModelCloudEnvironment } from "@bentley/imodelhub-client";
 import { VersionComparisonTool } from "../Tool/VersionComparisonTool";
+import { ToggleShadowMapTilesTool } from "../app-ui/frontstages/Zhuangshi";
 
 /**
  * List of possible backends that ninezone-sample-app can use
@@ -104,6 +105,9 @@ export class NineZoneSampleApp {
     ToggleSkyboxTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
     Tool1.register(IModelApp.i18n.getNamespace("NineZoneSample"));
     VersionComparisonTool.register(
+      IModelApp.i18n.getNamespace("NineZoneSample")
+    );
+    ToggleShadowMapTilesTool.register(
       IModelApp.i18n.getNamespace("NineZoneSample")
     );
   }

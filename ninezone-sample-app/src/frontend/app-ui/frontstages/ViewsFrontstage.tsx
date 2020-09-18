@@ -61,6 +61,7 @@ import {
   IssuesResolutionWidget,
   IssuesResolutionWidget2,
 } from "@bentley/issue-resolution";
+import { ProjectInfo, ProjectSelector } from "@bentley/imodel-select-react";
 import React from "react";
 import {
   ViewState,
@@ -98,11 +99,14 @@ import {
   PropertyValue,
   ConditionalBooleanValue,
 } from "@bentley/ui-abstract";
+import { TreeWidget } from "@bentley/tree-widget-react";
+// import { IModelContentTree } from "@bentley/imodel-content-tree-react";
 import { FooterSeparator, FooterIndicator } from "@bentley/ui-ninezone";
 import { connect } from "react-redux";
 import { Orientation, Select } from "@bentley/ui-core";
 import { DisplayStyle } from "@bentley/imodeljs-backend/lib/ViewDefinition";
 import { Id64String } from "@bentley/bentleyjs-core";
+import { IModelContentTree } from "../../../components/IModelContentTree";
 
 export class ViewsFrontstage extends FrontstageProvider {
   public static MAIN_VIEW_LAYOUT_ID = "MainView";
@@ -733,6 +737,12 @@ class TestSelectElementNumber extends React.Component<MyProp> {
 const SelectionInfoField2020 = connect(mapStateToProps2020)(
   TestSelectElementNumber
 );
+interface MyComponentProps {
+  iModel: IModelConnection;
+}
+function MyComponent(props: MyComponentProps) {
+  return <IModelContentTree iModel={props.iModel} />;
+}
 class SunWidget extends WidgetControl {
   constructor(info: ConfigurableCreateInfo, options: any) {
     super(info, options);
@@ -744,7 +754,7 @@ class SunWidget extends WidgetControl {
       //     listenForShowUpdates={false}
       //   />
       // );
-      this.reactNode = <SelectionInfoField2020 />;
+      this.reactNode = <MyComponent iModel={options.iModelConnection} />;
     } else {
       this.reactNode = <div>明月几时有</div>;
     }

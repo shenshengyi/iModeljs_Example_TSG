@@ -8,6 +8,7 @@ import {
   IModelTileRpcInterface,
   RpcInterfaceDefinition,
   SnapshotIModelRpcInterface,
+  Editor3dRpcInterface,
 } from "@bentley/imodeljs-common";
 import { PresentationRpcInterface } from "@bentley/presentation-common";
 
@@ -21,5 +22,6 @@ export function getSupportedRpcs(): RpcInterfaceDefinition[] {
     PresentationRpcInterface,
     SnapshotIModelRpcInterface,
     IModelWriteRpcInterface,
+    Editor3dRpcInterface,
   ];
 }

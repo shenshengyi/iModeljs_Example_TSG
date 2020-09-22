@@ -19,6 +19,7 @@ import { UIViewportFrontstage } from "./frontstages/UIViewFrontstage";
 import { IModelIndexStage } from "../MyStage/IModelIndexStage";
 import { TableFrontstage } from "./frontstages/TableStage";
 import { TreeFrontstage } from "./frontstages/TreeStage";
+import { SavedViewFrontstage1 } from "./frontstages/SavedViewStage";
 
 /**
  * Example Ui Configuration for an iModel.js App
@@ -92,5 +93,7 @@ export class AppUi {
 
     const tree = new TreeFrontstage(viewStates);
     FrontstageManager.addFrontstageProvider(tree);
+    const savedView = new SavedViewFrontstage1(viewStates);
+    FrontstageManager.addFrontstageProvider(savedView);
   }
 }

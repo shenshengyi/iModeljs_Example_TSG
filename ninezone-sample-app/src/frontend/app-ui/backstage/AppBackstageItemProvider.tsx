@@ -46,7 +46,7 @@ export class AppBackstageItemProvider {
           "TestFeatureState",
           100,
           40,
-          "测试NBA",
+          "测试个人View",
           undefined,
           "icon-placeholder"
         ),
@@ -87,6 +87,14 @@ export class AppBackstageItemProvider {
           100,
           90,
           "树形显示imodel内容",
+          undefined,
+          "icon-placeholder"
+        ),
+        BackstageItemUtilities.createStageLauncher(
+          "SavedViewFrontstage1",
+          200,
+          10,
+          "测试SavedView",
           undefined,
           "icon-placeholder"
         ),

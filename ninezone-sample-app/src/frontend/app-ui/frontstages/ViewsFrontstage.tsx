@@ -7,11 +7,8 @@ import {
   CoreTools,
   ContentLayoutDef,
   ContentProps,
-  StagePanel,
-  StagePanelState,
   Widget,
   WidgetState,
-  FrameworkVersionSwitch,
   FrontstageProps,
   Zone,
   ZoneState,
@@ -23,33 +20,19 @@ import {
   ViewportContentControl,
   ConfigurableUiManager,
   BasicNavigationWidget,
-  ModelsTree,
-  ClassGroupingOption,
   SpatialContainmentTree,
   ModelsTreeSelectionPredicate,
-  ModelSelectorWidgetControl,
   ViewSelector,
   CustomItemDef,
-  ToolbarHelper,
   StatusBarWidgetControlArgs,
   StatusBarItemUtilities,
   withStatusFieldProps,
-  FooterModeField,
-  ActivityCenterField,
-  SnapModeField,
-  MessageCenterField,
-  ToolAssistanceField,
-  withMessageCenterFieldProps,
   StatusBarItem,
   StatusBarWidgetControl,
   StatusBarComposer,
   SelectionInfoField,
-  StatusBar,
-  ZoneLocation,
   TileLoadingIndicator,
-  ClearEmphasisStatusField,
   SelectionScopeField,
-  SectionsStatusField,
   ViewAttributesStatusField,
   ContentViewManager,
   FrontstageManager,
@@ -57,11 +40,6 @@ import {
   ContentControl,
   StatusFieldProps,
 } from "@bentley/ui-framework";
-import {
-  IssuesResolutionWidget,
-  IssuesResolutionWidget2,
-} from "@bentley/issue-resolution";
-import { ProjectInfo, ProjectSelector } from "@bentley/imodel-select-react";
 import React from "react";
 import {
   ViewState,
@@ -97,16 +75,13 @@ import {
   PrimitiveValue,
   PropertyDescription,
   PropertyValue,
-  ConditionalBooleanValue,
 } from "@bentley/ui-abstract";
-import { TreeWidget } from "@bentley/tree-widget-react";
 // import { IModelContentTree } from "@bentley/imodel-content-tree-react";
-import { FooterSeparator, FooterIndicator } from "@bentley/ui-ninezone";
-import { connect } from "react-redux";
+import { FooterIndicator } from "@bentley/ui-ninezone";
 import { Orientation, Select } from "@bentley/ui-core";
-import { DisplayStyle } from "@bentley/imodeljs-backend/lib/ViewDefinition";
 import { Id64String } from "@bentley/bentleyjs-core";
 import { IModelContentTree } from "../../../components/IModelContentTree";
+import { RobotWorldApp } from "./RobotWorldApp";
 
 export class ViewsFrontstage extends FrontstageProvider {
   public static MAIN_VIEW_LAYOUT_ID = "MainView";
@@ -118,31 +93,9 @@ export class ViewsFrontstage extends FrontstageProvider {
   public static XSECTION_CONTENT_ID = "XSection";
   public static PROFILE_CONTENT_ID = "ProfileSection";
   private _contentGroup: ContentGroup;
-  private _contentLayout: ContentLayoutDef;
-  // Default layout
-  private _mainViewLayout: ContentLayoutDef;
-  private _mainViewWithXSectionLayout: ContentLayoutDef;
   private _mainViewWithProfileSectionLayout: ContentLayoutDef;
   public constructor(public viewStates: ViewState[]) {
     super();
-
-    // Create the content layouts.
-    this._mainViewLayout = new ContentLayoutDef({
-      descriptionKey: "ProjectWiseReview:ContentLayoutDef.MainView",
-      priority: 50,
-      id: ViewsFrontstage.MAIN_VIEW_LAYOUT_ID,
-    });
-
-    this._mainViewWithXSectionLayout = new ContentLayoutDef({
-      descriptionKey: "ProjectWiseReview:ContentLayoutDef.MainViewWithXSection",
-      priority: 50,
-      horizontalSplit: {
-        id: ViewsFrontstage.MAIN_VIEW_XSECTION_SPLIT_LAYOUT_ID,
-        percentage: 0.6,
-        top: 0,
-        bottom: 1,
-      },
-    });
 
     // this._mainViewWithProfileSectionLayout = new ContentLayoutDef({
     //   descriptionKey:
@@ -156,7 +109,6 @@ export class ViewsFrontstage extends FrontstageProvider {
     //   },
     // });
     this._mainViewWithProfileSectionLayout = new ContentLayoutDef({});
-    this._contentLayout = new ContentLayoutDef({});
 
     const contentProps: ContentProps[] = [];
 
@@ -286,30 +238,8 @@ export class ViewsFrontstage extends FrontstageProvider {
       ></Frontstage>
     );
   }
-  private get _additionalNavigationVerticalToolbarItems() {
-    return [
-      ToolbarHelper.createToolbarItemFromItemDef(
-        200,
-        this._viewSelectorItemDef
-      ),
-    ];
-  }
-  private get _viewSelectorItemDef() {
-    const imodelConnection = UiFramework.getIModelConnection();
-    return new CustomItemDef({
-      customId: "App:viewSelector",
-      reactElement: (
-        <ViewSelector imodel={imodelConnection} listenForShowUpdates={false} />
-      ),
-    });
-  }
 }
 
-// viewportRef?: (v: ScreenViewport) => void;
-const sync = new TwoWayViewportSync();
-function TwoViewportSync(v: ScreenViewport) {
-  sync.connect(v, IModelApp.viewManager.selectedView!);
-}
 export class LoadingStage extends FrontstageProvider {
   public get frontstage(): React.ReactElement<FrontstageProps> {
     const contentGroup: ContentGroup = new ContentGroup({
@@ -332,7 +262,7 @@ export class LoadingStage extends FrontstageProvider {
   }
 }
 
-class SampleToolWidget extends React.Component {
+export class SampleToolWidget extends React.Component {
   public render(): React.ReactNode {
     const horizontalItems = new ItemList([
       CoreTools.selectElementCommand,
@@ -402,10 +332,7 @@ interface VisibilityTreeComponentProps {
 }
 function VisibilityTreeComponent(props: VisibilityTreeComponentProps) {
   const { imodel, activeView, enablePreloading } = props;
-  const modelsTreeProps = props.config?.modelsTree;
-  const categoriesTreeProps = props.config?.categoriesTree;
   const spatialTreeProps = props.config?.spatialTree;
-  const storyTreeProps = props.config?.storyTree;
 
   return (
     <div className="ui-test-app-visibility-widget">
@@ -582,29 +509,13 @@ export class SmallStatusBarWidgetControl1 extends StatusBarWidgetControl {
 
   private get statusBarItems(): StatusBarItem[] {
     // tslint:disable-next-line: variable-name
-    const ToolAssistance = withStatusFieldProps(ToolAssistanceField);
-    // tslint:disable-next-line: variable-name
-    const MessageCenter = withMessageCenterFieldProps(MessageCenterField);
-    // tslint:disable-next-line: variable-name
-    const SnapMode = withStatusFieldProps(SnapModeField);
-    // tslint:disable-next-line: variable-name
-    const DisplayStyle = withStatusFieldProps(DisplayStyleField);
-    // tslint:disable-next-line: variable-name
-    const ActivityCenter = withStatusFieldProps(ActivityCenterField);
-    // tslint:disable-next-line: variable-name
     const ViewAttributes = withStatusFieldProps(ViewAttributesStatusField);
-    // tslint:disable-next-line: variable-name
-    const Sections = withStatusFieldProps(SectionsStatusField);
     // tslint:disable-next-line: variable-name
     const SelectionInfo = withStatusFieldProps(SelectionInfoField);
     // tslint:disable-next-line: variable-name
     const SelectionScope = withStatusFieldProps(SelectionScopeField);
     // tslint:disable-next-line: variable-name
-    const ClearEmphasis = withStatusFieldProps(ClearEmphasisStatusField);
-    // tslint:disable-next-line: variable-name
     const TileLoadIndicator = withStatusFieldProps(TileLoadingIndicator);
-    // tslint:disable-next-line: variable-name
-    const FooterMode = withStatusFieldProps(FooterModeField);
     if (!this._statusBarItems) {
       // const isHiddenCondition = new ConditionalBooleanValue(
       //   () => SampleAppIModelApp.getTestProperty() === "HIDE",
@@ -716,45 +627,24 @@ interface MyProp {
   currentSelectNum: number;
 }
 
-/** Function used by Redux to map state data in Redux store to props that are used to render this component. */
-function mapStateToProps2020(state: any) {
-  const frameworkState = state[UiFramework.frameworkStateKey]; // since app sets up key, don't hard-code name
-  /* istanbul ignore next */
-  if (!frameworkState) return undefined;
-
-  return { currentSelectNum: frameworkState.sessionState.numItemsSelected };
-}
-
-class TestSelectElementNumber extends React.Component<MyProp> {
-  public constructor(props: MyProp) {
-    super(props);
-  }
-  public render() {
-    return <div>当前选择了{this.props.currentSelectNum}个元素.</div>;
-  }
-}
-
-const SelectionInfoField2020 = connect(mapStateToProps2020)(
-  TestSelectElementNumber
-);
 interface MyComponentProps {
   iModel: IModelConnection;
 }
 function MyComponent(props: MyComponentProps) {
   return <IModelContentTree iModel={props.iModel} />;
 }
+
 class SunWidget extends WidgetControl {
   constructor(info: ConfigurableCreateInfo, options: any) {
     super(info, options);
 
     if (options.iModelConnection) {
-      // this.reactNode = (
-      //   <ViewSelector
-      //     imodel={options.iModelConnection}
-      //     listenForShowUpdates={false}
-      //   />
-      // );
-      this.reactNode = <MyComponent iModel={options.iModelConnection} />;
+      this.reactNode = (
+        <ViewSelector
+          imodel={options.iModelConnection}
+          listenForShowUpdates={false}
+        />
+      );
     } else {
       this.reactNode = <div>明月几时有</div>;
     }

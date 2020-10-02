@@ -307,7 +307,7 @@ class OpenIModelButton extends React.PureComponent<
         imodel = await RemoteBriefcaseConnection.open(
           info.projectId,
           info.imodelId,
-          OpenMode.ReadWrite
+          OpenMode.Readonly
         );
       }
     } catch (e) {

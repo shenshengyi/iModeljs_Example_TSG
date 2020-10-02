@@ -50,6 +50,7 @@
     "@bentley/imodeljs-i18n": "^2.5.0",
     "@bentley/imodeljs-markup": "^2.5.0",
     "@bentley/imodeljs-quantity": "^2.5.0",
+    "@bentley/telemetry-client": "^2.5.0",
     "@bentley/issue-resolution": "3.7.25",
     "@bentley/itwin-client": "^2.5.0",
     "@bentley/presentation-backend": "^2.5.0",

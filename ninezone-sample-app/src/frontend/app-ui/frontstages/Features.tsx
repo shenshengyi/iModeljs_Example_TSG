@@ -28,17 +28,12 @@ import {
   OrthographicViewState,
   SpatialViewState,
   StandardViewId,
-  ViewRect,
-  imageBufferToCanvas,
   AuthorizedFrontendRequestContext,
+  ToolTipProvider,
+  SelectionSetEvent,
+  SelectionSetEventType,
 } from "@bentley/imodeljs-frontend";
-import {
-  ItemList,
-  CommandItemDef,
-  UiFramework,
-  SavedViewLayout,
-  SavedViewLayoutProps,
-} from "@bentley/ui-framework";
+import { ItemList, CommandItemDef, UiFramework } from "@bentley/ui-framework";
 import {
   ColorDef,
   ViewStateProps,
@@ -69,20 +64,14 @@ import {
   Box,
   Vector3d,
   YawPitchRollAngles,
-  LineSegment3d,
   Arc3d,
-  Point2d,
 } from "@bentley/geometry-core";
 import { Briefcase } from "@bentley/imodelhub-client";
 import { ToggleShadowMapTilesTool } from "./Zhuangshi";
 import { ViewCreator3d } from "./ViewCreater3d";
 import { BlankConnectionExample } from "./BlankConnectionExample";
 import { RobotWorldApp } from "./RobotWorldApp";
-import { TestSavedView2020, TestSavedViewNi2020 } from "./SavedViewStage";
-import {
-  SettingsStatus,
-  SettingsResult,
-} from "@bentley/product-settings-client";
+import { SettingsStatus } from "@bentley/product-settings-client";
 export class TestFeature {
   public static CreateCommand(
     id: string,
@@ -158,6 +147,11 @@ export class TestFeature {
       "TestSavedViewNi",
       "测试从SaveView获取viewState",
       TestSavedViewNi
+    ),
+    TestFeature.CreateCommand(
+      "TestViewManagers",
+      "测试ViewManagers",
+      TestViewManagers
     ),
   ]);
 }
@@ -934,12 +928,6 @@ async function createLine(
   // return editor.createElement(props3d, origin, angles, geomprops);
   return editor.createElement(props3d);
 }
-function makeLine(p1?: Point3d, p2?: Point3d): LineSegment3d {
-  return LineSegment3d.create(
-    p1 || new Point3d(0, 0, 0),
-    p2 || new Point3d(1000, 0, 0)
-  );
-}
 let myModel: string;
 async function QueryCreateElement() {
   const iModel = UiFramework.getIModelConnection()!;
@@ -998,13 +986,6 @@ async function QueryCreateElement() {
   // for (const m of models) {
   //   console.log(m.classFullName);
   // }
-}
-async function _executeQuery(query: string) {
-  const imodel = UiFramework.getIModelConnection()!;
-  const rows = [];
-  for await (const row of imodel.query(query)) rows.push(row.id);
-
-  return rows;
 }
 
 async function TestElementEdit() {
@@ -1106,7 +1087,6 @@ async function TestBlankView() {
 
   RobotWorldApp.openView(el);
 }
-const savedViewList: SavedViewLayoutProps[] = [];
 async function TestSavedView() {
   // const imodel = UiFramework.getIModelConnection()!;
   // SavedViewLayout.viewLayoutToProps();
@@ -1159,4 +1139,85 @@ async function TestSavedViewNi() {
   } else {
     alert("获取设置失败");
   }
+}
+
+class DebugToolTipProvider implements ToolTipProvider {
+  private static _instance?: DebugToolTipProvider;
+
+  public async augmentToolTip(
+    hit: HitDetail,
+    tooltipPromise: Promise<HTMLElement | string>
+  ): Promise<HTMLElement | string> {
+    // discard and overwrite
+    await tooltipPromise;
+
+    const keys: Array<keyof HitDetail> = [
+      "sourceId",
+      "modelId",
+      "subCategoryId",
+      "tileId",
+      "geometryClass",
+      "distXY",
+    ];
+    let html = "";
+    //const iModel = UiFramework.getIModelConnection()!;
+    // const id = hit["sourceId"];
+    // if (iModel.selectionSet.has(id)) {
+    // } else {
+    //   iModel.selectionSet.add(id);
+    // }
+    // const vp = IModelApp.viewManager.selectedView!;
+    // vp.zoomToElements(hit["sourceId"]);
+    for (const key of keys) {
+      const value = hit[key];
+      if (undefined === value) continue;
+
+      html = html + key + ": " + value.toString() + "<br>";
+    }
+
+    const div = document.createElement("div");
+    div.innerHTML = html;
+    return div;
+  }
+
+  public static setEnabled(enabled: boolean | undefined): void {
+    if (undefined === enabled) enabled = undefined === this._instance;
+
+    if (enabled) {
+      if (undefined === this._instance) {
+        this._instance = new DebugToolTipProvider();
+        IModelApp.viewManager.addToolTipProvider(this._instance);
+      }
+    } else if (undefined !== this._instance) {
+      IModelApp.viewManager.dropToolTipProvider(this._instance);
+      this._instance = undefined;
+    }
+  }
+}
+// *  processSelectionSetEvent(ev: SelectionSetEvent): void {
+//   *    if (SelectionSetEventType.Add === ev.type || SelectionSetEventType.Replace === ev.type)
+//   *      console.log("Added " + ev.added.size + " elements");
+//   *
+//   *    if (SelectionSetEventType.Add !== ev.type)
+//   *      console.log("Removed " + ev.removed.size + " elements");
+//   *  }
+async function processSelectionSetEvent(ev: SelectionSetEvent) {
+  if (SelectionSetEventType.Replace === ev.type) {
+    const vp = IModelApp.viewManager.selectedView!;
+    vp.zoomToElements(ev.added);
+  }
+  // alert(ev.type);
+}
+//测试ViewManager
+async function TestViewManagers() {
+  // const c = IModelApp.viewManager.walkCursor;
+
+  // IModelApp.viewManager.setViewCursor(c);
+  // const cursor = IModelApp.viewManager.cursor;
+  DebugToolTipProvider.setEnabled(true);
+  // // alert(IModelApp.viewManager.toolTipProviders.length);
+  // const id = "0x40000000da7";
+  // IModelApp.viewManager.selectedView!.zoomToElements(id);
+  const iModel = UiFramework.getIModelConnection()!;
+  iModel.selectionSet.onChanged.addListener(processSelectionSetEvent);
 }

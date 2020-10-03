@@ -297,7 +297,7 @@ class OpenIModelButton extends React.PureComponent<
     let imodel: IModelConnection | undefined;
     try {
       // attempt to open the imodel
-      if (false) {
+      if (true) {
         // this.props.offlineIModel;
         //imjs_offline_imodel是前面所创建的离线iModel数据文件TestMyiModel.bim的路径
         const offlineIModel = Config.App.getString("imjs_offline_imodel");

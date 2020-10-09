@@ -33,7 +33,13 @@ import {
   SelectionSetEvent,
   SelectionSetEventType,
 } from "@bentley/imodeljs-frontend";
-import { ItemList, CommandItemDef, UiFramework } from "@bentley/ui-framework";
+import {
+  ItemList,
+  CommandItemDef,
+  UiFramework,
+  SavedView,
+  SavedViewProps,
+} from "@bentley/ui-framework";
 import {
   ColorDef,
   ViewStateProps,
@@ -72,6 +78,7 @@ import { ViewCreator3d } from "./ViewCreater3d";
 import { BlankConnectionExample } from "./BlankConnectionExample";
 import { RobotWorldApp } from "./RobotWorldApp";
 import { SettingsStatus } from "@bentley/product-settings-client";
+import { MyTool } from "./MyTool";
 export class TestFeature {
   public static CreateCommand(
     id: string,
@@ -150,8 +157,13 @@ export class TestFeature {
     ),
     TestFeature.CreateCommand(
       "TestViewManagers",
-      "测试ViewManagers",
-      TestViewManagers
+      "测试序列化savedView.",
+      TestSerializationView
+    ),
+    TestFeature.CreateCommand(
+      "TestGetViewStateFromCloud",
+      "测试反序列化View",
+      TestDeserializationView
     ),
   ]);
 }
@@ -1209,15 +1221,51 @@ async function processSelectionSetEvent(ev: SelectionSetEvent) {
   // alert(ev.type);
 }
 //测试ViewManager
-async function TestViewManagers() {
-  // const c = IModelApp.viewManager.walkCursor;
+async function TestSerializationView() {
+  const vp = IModelApp.viewManager.selectedView!.view;
+  const viewProp = SavedView.viewStateToProps(vp);
 
-  // IModelApp.viewManager.setViewCursor(c);
-  // const cursor = IModelApp.viewManager.cursor;
-  DebugToolTipProvider.setEnabled(true);
-  // // alert(IModelApp.viewManager.toolTipProviders.length);
-  // const id = "0x40000000da7";
-  // IModelApp.viewManager.selectedView!.zoomToElements(id);
-  const iModel = UiFramework.getIModelConnection()!;
-  iModel.selectionSet.onChanged.addListener(processSelectionSetEvent);
+  const imodel = UiFramework.getIModelConnection()!;
+  const requestContext = await AuthorizedFrontendRequestContext.create();
+  const userResult = await IModelApp.settings.saveUserSetting(
+    requestContext,
+    viewProp,
+    "NineZoneSample",
+    "SaveView1",
+    true,
+    imodel.contextId,
+    imodel.iModelId
+  );
+  if (userResult.status === SettingsStatus.Success) {
+    alert("保存成功");
+  } else {
+    alert("保存失败");
+  }
+}
+
+//测试从云上获取viewstate
+async function TestDeserializationView() {
+  const imodel = UiFramework.getIModelConnection()!;
+  const requestContext = await AuthorizedFrontendRequestContext.create();
+  const userResult = await IModelApp.settings.getUserSettingsByNamespace(
+    requestContext,
+    "NineZoneSample",
+    true,
+    imodel.contextId,
+    imodel.iModelId
+  );
+  if (userResult.status == SettingsStatus.Success && userResult.settingsMap) {
+    if (userResult.settingsMap && userResult.settingsMap.get("SaveView1")) {
+      const v: SavedViewProps | undefined = userResult.settingsMap.get(
+        "SaveView1"
+      ) as SavedViewProps;
+      if (v) {
+        const state = await SavedView.viewStateFromProps(imodel, v);
+        const vp = IModelApp.viewManager.selectedView!;
+        vp.changeView(state!);
+      }
+    }
+  } else {
+    alert("获取设置失败");
+  }
 }

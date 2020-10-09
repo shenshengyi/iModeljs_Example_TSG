@@ -39,6 +39,8 @@ import {
   ContentControlActivatedEventArgs,
   ContentControl,
   StatusFieldProps,
+  IModelConnectedNavigationWidget,
+  IModelConnectedViewSelector,
 } from "@bentley/ui-framework";
 import React from "react";
 import {
@@ -161,7 +163,6 @@ export class ViewsFrontstage extends FrontstageProvider {
         viewNavigationTools={
           <Zone
             widgets={[
-              /** Use standard NavigationWidget delivered in ui-framework */
               <Widget
                 isFreeform={true}
                 element={
@@ -217,6 +218,23 @@ export class ViewsFrontstage extends FrontstageProvider {
         //     ]}
         //   />
         // }
+        centerLeft={
+          <Zone
+            widgets={[
+              /** Use standard NavigationWidget delivered in ui-framework */
+              <Widget
+                isFreeform={true}
+                element={
+                  <IModelConnectedNavigationWidget
+                    suffixVerticalItems={
+                      new ItemList([this._viewSelectorItemDef])
+                    }
+                  />
+                }
+              />,
+            ]}
+          />
+        }
         centerRight={
           <Zone
             defaultState={ZoneState.Minimized}
@@ -237,6 +255,18 @@ export class ViewsFrontstage extends FrontstageProvider {
         }
       ></Frontstage>
     );
+  }
+
+  /** Get the CustomItemDef for ViewSelector  */
+  private get _viewSelectorItemDef() {
+    return new CustomItemDef({
+      customId: "sampleApp:viewSelector",
+      reactElement: (
+        <IModelConnectedViewSelector
+          listenForShowUpdates={false} // Demo for showing only the same type of view in ViewSelector - See IModelViewport.tsx, onActivated
+        />
+      ),
+    });
   }
 }
 
@@ -643,6 +673,21 @@ class SunWidget extends WidgetControl {
         <ViewSelector
           imodel={options.iModelConnection}
           listenForShowUpdates={false}
+        />
+      );
+    } else {
+      this.reactNode = <div>明月几时有</div>;
+    }
+  }
+}
+class YueLiang extends WidgetControl {
+  constructor(info: ConfigurableCreateInfo, options: any) {
+    super(info, options);
+
+    if (options.iModelConnection) {
+      this.reactNode = (
+        <IModelConnectedViewSelector
+          listenForShowUpdates={false} // Demo for showing only the same type of view in ViewSelector - See IModelViewport.tsx, onActivated
         />
       );
     } else {

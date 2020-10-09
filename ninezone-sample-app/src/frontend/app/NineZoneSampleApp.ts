@@ -23,20 +23,19 @@ import {
   IModelApp,
   IModelAppOptions,
 } from "@bentley/imodeljs-frontend";
-import { UrlDiscoveryClient, AccessToken } from "@bentley/itwin-client";
+import { UrlDiscoveryClient } from "@bentley/itwin-client";
 import { Presentation } from "@bentley/presentation-frontend";
 import { AppNotificationManager, UiFramework } from "@bentley/ui-framework";
 import { initRpc } from "../api/rpc";
 import { AppState, AppStore } from "./AppState";
-import { BackstageToggle } from "../app-ui/tools/NavigatorTools";
 import {
   SampleLocateTool,
   ToggleSkyboxTool,
   Tool1,
 } from "../app-ui/frontstages/Features";
-import { IModelCloudEnvironment } from "@bentley/imodelhub-client";
 import { VersionComparisonTool } from "../Tool/VersionComparisonTool";
 import { ToggleShadowMapTilesTool } from "../app-ui/frontstages/Zhuangshi";
+import { MyTool } from "../app-ui/frontstages/MyTool";
 
 /**
  * List of possible backends that ninezone-sample-app can use
@@ -110,6 +109,7 @@ export class NineZoneSampleApp {
     ToggleShadowMapTilesTool.register(
       IModelApp.i18n.getNamespace("NineZoneSample")
     );
+    MyTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
   }
   private static async initializeRpc(): Promise<void> {
     const rpcParams = await this.getConnectionInfo();

@@ -23,6 +23,9 @@ import {
   RemoteBriefcaseConnection,
   SnapshotConnection,
   ViewState,
+  StandardViewId,
+  SpatialModelState,
+  PhysicalModelState,
 } from "@bentley/imodeljs-frontend";
 import { SignIn } from "@bentley/ui-components";
 import {
@@ -39,6 +42,7 @@ import { AppUi } from "../app-ui/AppUi";
 import { AppBackstageComposer } from "../app-ui/backstage/AppBackstageComposer";
 import { NineZoneSampleApp } from "../app/NineZoneSampleApp";
 import "./App.css";
+import { ViewCreator3d } from "../app-ui/frontstages/ViewCreater3d";
 
 /** React state of the App component */
 export interface AppState {
@@ -110,7 +114,7 @@ export default class App extends React.Component<{}, AppState> {
   private async getFirstTwoViewDefinitions(
     imodel: IModelConnection
   ): Promise<ViewState[]> {
-    const viewSpecs = await imodel.views.queryProps({});
+    let viewSpecs = await imodel.views.queryProps({});
     const acceptedViewClasses = [
       "BisCore:SpatialViewDefinition",
       "BisCore:DrawingViewDefinition",
@@ -119,10 +123,10 @@ export default class App extends React.Component<{}, AppState> {
     const acceptedViewSpecs = viewSpecs.filter(
       (spec) => -1 !== acceptedViewClasses.indexOf(spec.classFullName)
     );
-    if (1 > acceptedViewSpecs.length)
-      throw new Error("No valid view definitions in imodel");
+    // if (1 > acceptedViewSpecs.length)
+    //   throw new Error("No valid view definitions in imodel");
 
-    const viewStates: ViewState[] = [];
+    let viewStates: ViewState[] = [];
     for (const viewDef of acceptedViewSpecs) {
       const viewState = await imodel.views.load(viewDef.id!);
       viewStates.push(viewState);
@@ -132,10 +136,35 @@ export default class App extends React.Component<{}, AppState> {
       const viewState = await imodel.views.load(acceptedViewSpecs[0].id!);
       viewStates.push(viewState);
     }
-
+    if (viewStates.length === 0) {
+      alert(viewStates.length);
+      viewStates = await this.CreateMyViewState(imodel);
+      alert(viewStates.length);
+    }
     return viewStates;
   }
-
+  private async CreateMyViewState(
+    imodel: IModelConnection
+  ): Promise<ViewState[]> {
+    const myModel: string[] = [];
+    const ps = await imodel.models.queryProps({});
+    for (const p of ps) {
+      myModel.push(p.id!);
+      console.log(p.classFullName);
+    }
+    alert(myModel.length);
+    const viewCreator3d: ViewCreator3d = new ViewCreator3d(imodel);
+    let view3d = await viewCreator3d.createDefaultView(
+      {
+        cameraOn: true,
+        skyboxOn: true,
+        useSeedView: true,
+        standardViewId: StandardViewId.Front,
+      },
+      myModel
+    );
+    return [view3d];
+  }
   /** Handle iModel open event */
   private _onIModelSelected = async (imodel: IModelConnection | undefined) => {
     if (!imodel) {
@@ -297,10 +326,11 @@ class OpenIModelButton extends React.PureComponent<
     let imodel: IModelConnection | undefined;
     try {
       // attempt to open the imodel
-      if (true) {
+      if (false) {
         // this.props.offlineIModel;
         //imjs_offline_imodel是前面所创建的离线iModel数据文件TestMyiModel.bim的路径
-        const offlineIModel = Config.App.getString("imjs_offline_imodel");
+        // const offlineIModel = Config.App.getString("imjs_offline_imodel");
+        const offlineIModel = "D://2D-3D//nihao3.bim";
         imodel = await SnapshotConnection.openFile(offlineIModel);
       } else {
         const info = await this.getIModelInfo();

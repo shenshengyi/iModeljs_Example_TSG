@@ -1002,8 +1002,6 @@ async function QueryCreateElement() {
 
 async function TestElementEdit() {
   const iModel = UiFramework.getIModelConnection()!;
-  const m11 = await iModel.models.queryProps({});
-  alert("开始模型个数=" + m11.length.toString());
   const editor = await ElementEditor3d.start(iModel);
 
   const modelCode = await iModel.editing.codes.makeModelCode(
@@ -1068,22 +1066,6 @@ async function TestElementEdit() {
   IModelApp.viewManager.selectedView!.changeView(view3d);
   const vp2 = IModelApp.viewManager.selectedView!;
   vp2.addViewedModels(proIds);
-  // const vv = IModelApp.viewManager.selectedView!;
-  // alert(view3d.name);
-  // const n3 = (vv.view as SpatialViewState).modelSelector.containsModel.length;
-  // alert("之前model个数=" + n3.toString());
-  // const mqr = await iModel.models.getProps(model);
-  // if (mqr) {
-  //   alert("所创建模型类型=" + mqr[0].classFullName);
-  // }
-  // const rr = await iModel.models.queryProps({});
-  // const ls: string[] = [];
-  // rr.forEach((r: ModelProps) => {
-  //   ls.push(r.id!);
-  // });
-  // vv.addViewedModels(ls);
-  // const n4 = (vv.view as SpatialViewState).modelSelector.containsModel.length;
-  // alert("之后model个数=" + n4.toString());
 }
 
 async function TestBlankView() {

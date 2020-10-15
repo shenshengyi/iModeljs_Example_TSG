@@ -3,24 +3,51 @@
 * See LICENSE.md in the project root for license terms and full copyright notice.
 *--------------------------------------------------------------------------------------------*/
 import { app as electron } from "electron";
-import { Logger, LogLevel } from "@bentley/bentleyjs-core";
-import { IModelHost } from "@bentley/imodeljs-backend";
+import { Config, Logger, LogLevel } from "@bentley/bentleyjs-core";
+import { IModelHost, IModelHostConfiguration } from "@bentley/imodeljs-backend";
 import { Presentation } from "@bentley/presentation-backend";
-import { RpcInterfaceDefinition } from "@bentley/imodeljs-common";
-
+import { RpcConfiguration, RpcInterfaceDefinition } from "@bentley/imodeljs-common";
 import { getSupportedRpcs } from "../common/rpcs";
 import { AppLoggerCategory } from "../common/LoggerCategory";
-
+import { IModelBankClient } from "@bentley/imodelhub-client";
+import { AzureFileHandler ,StorageServiceFileHandler} from "@bentley/backend-itwin-client";
+import { parseBasicAccessToken } from "./BasicAuthorization";
+import { LocalhostHandler } from "./LocalhostHandler";
 // Setup logging immediately to pick up any logging during IModelHost.startup()
 Logger.initializeToConsole();
 Logger.setLevelDefault(LogLevel.Warning);
 Logger.setLevel(AppLoggerCategory.Backend, LogLevel.Info);
 
+function getFileHandlerFromConfig() {
+  //const storageType: string = Config.App.get("imjs_imodelbank_storage_type");
+    const storageType: string = "localhost";
+  switch (storageType) {
+    case "azure":
+      return new AzureFileHandler();
+    case "servicestorage":
+      return new StorageServiceFileHandler();
+    case "localhost":
+    default:
+      return new LocalhostHandler();
+  }
+}
+
 (async () => {
   try {
     // Initialize iModelHost
-    await IModelHost.startup();
+    const config = new IModelHostConfiguration();
 
+    // iTwinStack: specify what kind of file handler is used by IModelBankClient
+    const fileHandler = getFileHandlerFromConfig();
+
+    // iTwinStack: setup IModelBankClient as imodelClient for IModelHost
+    // const url = Config.App.get("imjs_imodelbank_url");
+    const url ="http://localhost:4000"
+    config.imodelClient = new IModelBankClient(url, fileHandler);
+
+    // Initialize iModelHost
+    await IModelHost.startup(config);
+RpcConfiguration.requestContext.deserialize = parseBasicAccessToken;
     // Initialize Presentation
     Presentation.initialize();
 

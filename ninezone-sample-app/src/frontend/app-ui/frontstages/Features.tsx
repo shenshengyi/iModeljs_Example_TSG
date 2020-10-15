@@ -904,7 +904,7 @@ async function createLine(
   // parentId?: string,
   code: CodeProps
 ): Promise<void> {
-  let g = createBox(Point3d.create(100, 100, 1));
+  let g = createBox(Point3d.create(1000, 1000, 1000));
   // add Geometry
   const geomArray: Arc3d[] = [
     Arc3d.createXY(Point3d.create(0, 0), 5),
@@ -941,17 +941,17 @@ async function createLine(
   return editor.createElement(props3d);
 }
 let myModel: string;
+let create_id: string = "0x40000000001";
 async function QueryCreateElement() {
-  const iModel = UiFramework.getIModelConnection()!;
-  const ms = await iModel.models.queryProps({});
-  const ids: string[] = [];
-  ms.forEach((m: ModelProps) => {
-    if (m.id) {
-      ids.push(m.id);
-    }
-  });
-  alert(ids.length.toString());
-  const viewCreator3d: ViewCreator3d = new ViewCreator3d(iModel);
+  const imodel = UiFramework.getIModelConnection()!;
+  const eles = await imodel.elements.getProps(create_id);
+  if (eles.length > 0) {
+    const prop = eles[0];
+    // alert(prop.userLabel);
+    // alert(prop.classFullName);
+    console.log(prop);
+
+      const viewCreator3d: ViewCreator3d = new ViewCreator3d(imodel);
   let view3d = await viewCreator3d.createDefaultView(
     {
       cameraOn: true,
@@ -959,12 +959,46 @@ async function QueryCreateElement() {
       useSeedView: true,
       standardViewId: StandardViewId.Front,
     },
-    [myModel]
+    [create_id]
   );
-  const v = IModelApp.viewManager.selectedView!;
-  v.changeView(view3d);
-  alert(myModel);
+  const vp = IModelApp.viewManager.selectedView!;
+  if (!vp.view.isSpatialView) {
+    return;
+  }
+  const view = vp.view as SpatialViewState;
+  const proIds = view.modelSelector.models;
 
+  IModelApp.viewManager.selectedView!.changeView(view3d);
+  const vp2 = IModelApp.viewManager.selectedView!;
+  vp2.addViewedModels(proIds);
+
+  } else {
+    alert("查询不到");
+  }
+
+  // const iModel = UiFramework.getIModelConnection()!;
+  // const ms = await iModel.models.queryProps({});
+  // const ids: string[] = [];
+  // ms.forEach((m: ModelProps) => {
+  //   if (m.id) {
+  //     ids.push(m.id);
+  //   }
+  // });
+  // alert(ids.length.toString());
+  // const viewCreator3d: ViewCreator3d = new ViewCreator3d(iModel);
+  // let view3d = await viewCreator3d.createDefaultView(
+  //   {
+  //     cameraOn: true,
+  //     skyboxOn: true,
+  //     useSeedView: true,
+  //     standardViewId: StandardViewId.Front,
+  //   },
+  //   [myModel]
+  // );
+  // const v = IModelApp.viewManager.selectedView!;
+  // v.changeView(view3d);
+  // alert(myModel);
+/////////////////////////////////////////////////////////
   // const es = await iModel.elements.queryProps({});
   // for (const e of es) {
   //   if (e.userLabel && e.userLabel === "taiyang1") {
@@ -1038,14 +1072,12 @@ async function TestElementEdit() {
 
   iModel.saveChanges("保存");
   alert("模型id=" + model);
+  create_id = model;
   try {
     await iModel.models.load(model);
   } catch (e) {
     alert(e);
   }
-  // const v = IModelApp.viewManager.selectedView!;
-
-  // v.addViewedModels(model);
   const viewCreator3d: ViewCreator3d = new ViewCreator3d(iModel);
   let view3d = await viewCreator3d.createDefaultView(
     {

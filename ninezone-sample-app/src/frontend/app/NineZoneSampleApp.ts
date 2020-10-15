@@ -5,6 +5,7 @@
 import {
   ClientRequestContext,
   Config,
+  Guid,
   isElectronRenderer,
 } from "@bentley/bentleyjs-core";
 import {
@@ -14,6 +15,7 @@ import {
   FrontendAuthorizationClient,
 } from "@bentley/frontend-authorization-client";
 import {
+  BentleyCloudRpcManager,
   BentleyCloudRpcParams,
   DesktopAuthorizationClientConfiguration,
 } from "@bentley/imodeljs-common";
@@ -36,7 +38,9 @@ import {
 import { VersionComparisonTool } from "../Tool/VersionComparisonTool";
 import { ToggleShadowMapTilesTool } from "../app-ui/frontstages/Zhuangshi";
 import { MyTool } from "../app-ui/frontstages/MyTool";
-
+import { IModelBankClient } from "@bentley/imodelhub-client";
+import { IModelBankBasicAuthorizationClient } from "@bentley/imodelhub-client/lib/imodelbank/IModelBankBasicAuthorizationClient";
+import { getSupportedRpcs } from "../../common/rpcs";
 /**
  * List of possible backends that ninezone-sample-app can use
  */
@@ -60,14 +64,31 @@ export class NineZoneSampleApp {
 
   public static async startup(): Promise<void> {
     // Use the AppNotificationManager subclass from ui-framework to get prompts and messages
+
+    // // Setup IModelApp
+    // const opts: IModelAppOptions = {};
+
+    // // iTwinStack: Setup IModelBankClient as imodelClient for the IModelApp
+    // const url = Config.App.get("imjs_imodelbank_url");
+    // const imodelClient = new IModelBankClient(url, undefined);
+    // opts.imodelClient = imodelClient;
+
+
     const opts: IModelAppOptions = {};
     opts.notifications = new AppNotificationManager();
     opts.applicationVersion = "1.0.0";
+    const url = Config.App.get("imjs_imodelbank_url");
+    const imodelClient = new IModelBankClient(url, undefined);
+    opts.imodelClient = imodelClient;
+    // iTwinStack: Setup IModelBankBasicAuthorizationClient from username and password in config
+    const email = Config.App.get("imjs_imodelbank_user");
+    const password = Config.App.get("imjs_imodelbank_password");
+    opts.authorizationClient = new IModelBankBasicAuthorizationClient({id: Guid.createValue()}, {email, password});
 
     await IModelApp.startup(opts);
-
+    await IModelApp.authorizationClient?.signIn(new ClientRequestContext());
     // initialize OIDC
-    await NineZoneSampleApp.initializeOidc();
+    //await NineZoneSampleApp.initializeOidc();
 
     // contains various initialization promises which need
     // to be fulfilled before the app is ready
@@ -111,11 +132,15 @@ export class NineZoneSampleApp {
     );
     MyTool.register(IModelApp.i18n.getNamespace("NineZoneSample"));
   }
-  private static async initializeRpc(): Promise<void> {
+  private static async initializeRpc_old(): Promise<void> {
     const rpcParams = await this.getConnectionInfo();
     initRpc(rpcParams);
   }
-
+  private static async initializeRpc(): Promise<void> {
+    const rpcInterfaces = getSupportedRpcs();
+    const rpcParams = { info: { title: "ninezone-sample-app", version: "v1.0" }, uriPrefix: "http://localhost:3001" };
+    BentleyCloudRpcManager.initializeClient(rpcParams, rpcInterfaces);
+  }
   private static async initializeOidc() {
     // •	openid
     // •	email
